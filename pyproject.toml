@@ -1,0 +1,19 @@
+[project]
+name = "zero"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "pyobjc-framework-carbon>=12.1",
+    "pyobjc-framework-cocoa>=12.1",
+    "pyobjc-framework-quartz>=12.1",
+    "pyobjc-framework-webkit>=12.1",
+    "python-dotenv>=1.2.1",
+    "requests>=2.32.5",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.2",
+]

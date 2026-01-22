@@ -38,11 +38,12 @@ function addMessage(role, text) {
     // Icon
     const icon = document.createElement('span');
     icon.className = 'icon';
-    icon.textContent = role === 'user' ? 'U' : 'Z';
+    icon.textContent = role === 'user' ? 'U' : '0'; // Changed 'Z' to '0' for system icon
 
     // Text
-    const p = document.createElement('p');
-    p.textContent = text;
+    const p = document.createElement('div'); // Changed to div to contain markdown HTML
+    p.className = 'message-content';
+    p.innerHTML = marked.parse(text);
 
     msgDiv.appendChild(icon);
     msgDiv.appendChild(p);

@@ -1,7 +1,8 @@
 :root {
-    --bg-color: rgba(30, 30, 30, 0.6);
+    --bg-color: rgba(15, 23, 42, 1);
     --text-color: #ffffff;
-    --accent-color: #3b82f6;
+    --accent-color: #2563eb;
+    /* Vivid Blue */
     --border-color: #444;
 }
 
@@ -28,7 +29,10 @@ html {
     border: 1px solid rgba(255, 255, 255, 0.1);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
+    transition: all 0.3s ease;
 }
+
+
 
 #chat-container {
     flex: 1;
@@ -42,31 +46,79 @@ html {
 .message {
     display: flex;
     gap: 12px;
-    align-items: flex-start;
+    align-items: flex-end;
+    /* Align icon to bottom of matching bubble if multi-line */
     line-height: 1.5;
     font-size: 14px;
+    margin-bottom: 8px;
+    /* Extra spacing between messages */
 }
 
+/* User Messages: NOW LEFT ALIGNED */
 .message.user {
+    flex-direction: row;
+}
+
+/* System Messages: NOW RIGHT ALIGNED */
+.message.system {
     flex-direction: row-reverse;
 }
 
 .message .icon {
-    width: 24px;
-    height: 24px;
+    width: 28px;
+    height: 28px;
     background: rgba(255, 255, 255, 0.1);
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 12px;
+    font-size: 14px;
     font-weight: bold;
     flex-shrink: 0;
+    margin-bottom: 4px;
+    /* Slight adjust for alignment */
 }
 
-.message p {
+/* Specific icon colors */
+.message.user .icon {
+    background: var(--accent-color);
+    color: white;
+}
+
+.message.system .icon {
+    background: #444;
+}
+
+.message-content {
+    background: rgba(255, 255, 255, 0.05);
+    /* Default system color */
+    padding: 6px 10px;
+    border-radius: 12px;
+
+    /* System is now Right Aligned */
+    border-top-left-radius: 12px;
+    border-top-right-radius: 2px;
+
+    /* Chat bubble effect for system */
+    max-width: 80%;
+    word-wrap: break-word;
+}
+
+.message.user .message-content {
+    background: var(--accent-color);
+    color: white;
+
+    /* User is now Left Aligned */
+    border-radius: 12px;
+    border-top-left-radius: 2px;
+    border-top-right-radius: 12px;
+    /* Chat bubble effect for user */
+}
+
+.message-content p {
     margin: 0;
-    opacity: 0.9;
+    font-weight: 400;
+    /* Regular font weight */
 }
 
 #input-area {
@@ -89,6 +141,11 @@ html {
     color: rgba(255, 255, 255, 0.3);
 }
 
+/* Hide placeholder when typing/focused to prevent overlap/suggestion text */
+#user-input:focus::placeholder {
+    color: transparent;
+}
+
 /* Scrollbar styling */
 ::-webkit-scrollbar {
     width: 8px;
@@ -101,4 +158,63 @@ html {
 ::-webkit-scrollbar-thumb {
     background: rgba(255, 255, 255, 0.1);
     border-radius: 4px;
+}
+
+/* Ghost Mode Overrides */
+#app.ghost-mode {
+    background-color: transparent;
+    box-shadow: none;
+    border: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.4);
+    /* Micro-Shadow: Crisp, not fuzzy */
+}
+
+/* Remove floating line in ghost mode */
+#app.ghost-mode #input-area {
+    border-top: none;
+}
+
+/* Clear bubbles in ghost mode - clean floating text */
+#app.ghost-mode .message-content {
+    background: rgba(255, 255, 255, 0.05);
+    /* Restore default background */
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    /* Add subtle border for definition */
+    backdrop-filter: blur(5px);
+    /* Add slight blur for readability */
+    padding: 6px 10px;
+    /* Match base padding exactly */
+    /* Remove asymmetric padding which was for old alignment */
+}
+
+#app.ghost-mode .message.user .message-content {
+    background: var(--accent-color);
+    /* Restore accent bg */
+    color: white;
+    text-shadow: none;
+    /* Remove text shadow as we have a bg now */
+}
+
+/* Hide scrollbars in ghost mode to prevent floating artifacts */
+#app.ghost-mode ::-webkit-scrollbar {
+    width: 0px;
+    background: transparent;
+}
+
+/* Improve placeholder contrast in ghost mode */
+#app.ghost-mode #user-input::placeholder {
+    color: rgba(255, 255, 255, 0.8);
+    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.4);
+}
+
+/* Aggressive Font Weight Reset */
+.message-content,
+.message-content p,
+.message-content strong,
+.message-content b,
+.message-content * {
+    font-weight: 400 !important;
+    -webkit-font-smoothing: antialiased;
 }

@@ -1,6 +1,7 @@
 import Cocoa
 import WebKit
 import os
+import json
 from Cocoa import NSURL, NSURLRequest, NSObject, NSColor
 import objc
 from network.client import ZeroBrain
@@ -50,13 +51,17 @@ class ZeroWebView(WebKit.WKWebView):
         # Called from background thread, need to dispatch to main for UI update
         def update_ui():
             # Escape text for JS
-            import json
+            # import json (moved to top level)
             safe_text = json.dumps(response_text)
             js = f"receiveResponse({safe_text})"
             self.evaluateJavaScript_completionHandler_(js, None)
             
         from PyObjCTools import AppHelper
         AppHelper.callAfter(update_ui)
+
+    def toggle_ghost_mode(self):
+        js = "document.getElementById('app').classList.toggle('ghost-mode')"
+        self.evaluateJavaScript_completionHandler_(js, None)
 
     def load_local_ui(self):
         # Resolve path to ui/index.html

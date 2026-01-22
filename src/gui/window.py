@@ -43,9 +43,10 @@ class ZeroPanel(NSPanel):
             self.setLevel_(NSFloatingWindowLevel)
             self.setBackgroundColor_(NSColor.clearColor())
             self.setOpaque_(False)
-            self.setHasShadow_(True)
+            self.setHasShadow_(False) # Shadow handled by CSS to fix corner issues
             self.setMovableByWindowBackground_(True)
             self.setBecomesKeyOnlyIfNeeded_(False) # Allow it to become key
+            self.setHidesOnDeactivate_(False) # Prevent hiding/transparency on background click
             
         return self
 

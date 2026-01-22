@@ -69,20 +69,41 @@ class ZeroAppDelegate(NSObject):
         self.panel.center()
         
         # 4. Setup Global Hotkey
-        from hotkey import HotKeyManager
-        self.hotkey_manager = HotKeyManager(self.callback_toggle)
-        self.hotkey_manager.register_hotkey()
+        from hotkey import HotKeyManager, cmdKey, shiftKey
+        self.hotkey_manager = HotKeyManager()
+        
+        # ID 1: Toggle Window (Cmd+Shift+0)
+        self.hotkey_manager.register_hotkey(
+            29, # '0'
+            cmdKey | shiftKey,
+            self.callback_toggle,
+            1
+        )
 
+        # ID 2: Toggle Ghost Mode (Cmd+Shift+9)
+        self.hotkey_manager.register_hotkey(
+            25, # '9'
+            cmdKey | shiftKey,
+            self.callback_ghost_mode,
+            2
+        )
+
+        self.is_ghost_mode = False
         NSLog("Zero: Ready.")
 
     def callback_toggle(self):
-        # This might be called from a different thread or context, 
-        # but PyObjC handles the GIL.
-        # However, UI updates should be on main thread.
-        # Since Carbon events often come on main thread (or dispatched to it), it should be fine.
-        # To be safe, we can use performSelectorOnMainThread if needed, 
-        # but usually simple toggle is fine.
         self.toggleWindow_(None)
+
+    def callback_ghost_mode(self):
+        # Toggle state
+        self.is_ghost_mode = not self.is_ghost_mode
+        
+        # Toggle Native Shadow
+        # Shadow is now always False natively, handled by CSSBoxShadow
+        
+        # Dispatch to webview to toggle CSS
+        if self.webview:
+            self.webview.toggle_ghost_mode()
 
     def toggleWindow_(self, sender):
         if self.panel.isVisible():

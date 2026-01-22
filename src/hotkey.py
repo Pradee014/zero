@@ -12,7 +12,8 @@ cmdKey = 256
 shiftKey = 512
 kEventClassKeyboard = 1801812322 # 'keyb'
 kEventHotKeyPressed = 5
-typeEventHotKeyID = 1751607669 # 'hkid'
+typeEventHotKeyID = 1751869796 # 'hkid'
+kEventParamDirectObject = 757935405 # '----'
 
 # Types
 EventHotKeyID = struct.Struct('II') # signature (UInt32), id (UInt32)
@@ -21,20 +22,9 @@ EventHotKeyRef = ctypes.c_void_p
 EventHandlerRef = ctypes.c_void_p
 EventTypeSpec = struct.Struct('II') # eventClass (UInt32), eventKind (UInt32)
 OSStatus = ctypes.c_int32
+EventRef = ctypes.c_void_p
 
 # Function Signatures
-# RegisterEventHotKey
-carbon.RegisterEventHotKey.argtypes = [
-    ctypes.c_uint32, # keyCode
-    ctypes.c_uint32, # modifiers
-    ctypes.c_uint64, # id (struct passed by value? No, usually struct is small enough or pointer. Wait, check calling convention)
-    # Actually EventHotKeyID is a struct { signature, id }. In C it is passed by value.
-    # ctypes handles struct pass-by-value if we define it as a class.
-    EventTargetRef,  # target
-    ctypes.c_uint32, # options
-    ctypes.POINTER(EventHotKeyRef) # outRef
-]
-carbon.RegisterEventHotKey.restype = OSStatus
 
 # GetApplicationEventTarget
 carbon.GetApplicationEventTarget.argtypes = []
@@ -62,7 +52,7 @@ carbon.InstallEventHandler.restype = OSStatus
 class HotKeyID_Struct(ctypes.Structure):
     _fields_ = [("signature", ctypes.c_uint32), ("id", ctypes.c_uint32)]
 
-# Fix argtypes with correct struct
+# RegisterEventHotKey
 carbon.RegisterEventHotKey.argtypes = [
     ctypes.c_uint32, 
     ctypes.c_uint32, 
@@ -71,32 +61,48 @@ carbon.RegisterEventHotKey.argtypes = [
     ctypes.c_uint32, 
     ctypes.POINTER(EventHotKeyRef)
 ]
+carbon.RegisterEventHotKey.restype = OSStatus
+
+# GetEventParameter
+carbon.GetEventParameter.argtypes = [
+    EventRef,
+    ctypes.c_uint32, # name
+    ctypes.c_uint32, # type
+    ctypes.c_void_p, # outType
+    ctypes.c_uint32, # inBufferSize
+    ctypes.c_void_p, # outBufferSize
+    ctypes.c_void_p  # outBuffer
+]
+carbon.GetEventParameter.restype = OSStatus
 
 class EventTypeSpec_Struct(ctypes.Structure):
     _fields_ = [("eventClass", ctypes.c_uint32), ("eventKind", ctypes.c_uint32)]
 
 
 class HotKeyManager:
-    def __init__(self, callback):
-        self.callback = callback
-        self.hot_key_ref = ctypes.c_void_p()
+    def __init__(self):
+        self.callbacks = {} # id -> callback
+        self.hot_key_refs = []
         self.handler_ref = ctypes.c_void_p()
         self._c_handler = None # Keep alive
+        self.signature = struct.unpack(">i", b"HKEY")[0]
 
-    def register_hotkey(self):
-        # 1. Get Target
+    def register_hotkey(self, key_code, modifiers, callback, hk_id_val):
+        # 1. Store Callback
+        self.callbacks[hk_id_val] = callback
+
+        # 2. Get Target
         target = carbon.GetApplicationEventTarget()
         if not target:
             print("Zero: Failed to get Application Event Target")
             return
             
-        # 2. Register Hotkey
+        # 3. Register Hotkey
         hk_id = HotKeyID_Struct()
-        hk_id.signature = struct.unpack(">i", b"HKEY")[0]
-        hk_id.id = 1
+        hk_id.signature = self.signature
+        hk_id.id = hk_id_val
         
-        key_code = 29 # '0'
-        modifiers = cmdKey | shiftKey
+        ref = ctypes.c_void_p()
         
         status = carbon.RegisterEventHotKey(
             key_code,
@@ -104,17 +110,42 @@ class HotKeyManager:
             hk_id,
             target,
             0,
-            ctypes.byref(self.hot_key_ref)
+            ctypes.byref(ref)
         )
         
         if status != 0:
             print(f"Zero: RegisterEventHotKey failed with status {status}")
             return
             
-        # 3. Install Handler
+        self.hot_key_refs.append(ref)
+
+        # 4. Install Handler (only once)
+        if not self._c_handler:
+            self._install_handler(target)
+
+    def _install_handler(self, target):
         def handler_func(next_handler, event, user_data):
             try:
-                self.callback()
+                hk_id = HotKeyID_Struct()
+                
+                status = carbon.GetEventParameter(
+                    event,
+                    kEventParamDirectObject,
+                    typeEventHotKeyID,
+                    None,
+                    ctypes.sizeof(hk_id),
+                    None,
+                    ctypes.byref(hk_id)
+                )
+
+                if status == 0:
+                    if hk_id.id in self.callbacks:
+                        self.callbacks[hk_id.id]()
+                    else:
+                        print(f"Zero: Unknown hotkey ID {hk_id.id}")
+                else:
+                    print(f"Zero: GetEventParameter failed {status}")
+
             except Exception as e:
                 print(f"Zero: Callback Error: {e}")
             return 0
@@ -139,3 +170,4 @@ class HotKeyManager:
 
     def unregister(self):
         pass
+

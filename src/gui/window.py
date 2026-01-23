@@ -52,3 +52,12 @@ class ZeroPanel(NSPanel):
 
     def canBecomeKeyWindow(self):
         return True
+
+    def performKeyEquivalent_(self, event):
+        # Handle Cmd+Q
+        if event.modifierFlags() & Cocoa.NSEventModifierFlagCommand:
+            chars = event.charactersIgnoringModifiers()
+            if chars and chars.lower() == 'q':
+                Cocoa.NSApplication.sharedApplication().terminate_(self)
+                return True
+        return objc.super(ZeroPanel, self).performKeyEquivalent_(event)

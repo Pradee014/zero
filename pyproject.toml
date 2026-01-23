@@ -11,6 +11,10 @@ dependencies = [
     "pyobjc-framework-webkit>=12.1",
     "python-dotenv>=1.2.1",
     "requests>=2.32.5",
+    "langgraph>=0.0.10",
+    "langchain-ollama>=0.0.1",
+    "langchain-core>=0.1.10",
+    "pydantic>=2.12.5",
 ]
 
 [dependency-groups]

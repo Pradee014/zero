@@ -3,26 +3,24 @@ console.log("Zero UI loaded");
 
 const userInput = document.getElementById('user-input');
 const chatContainer = document.getElementById('chat-container');
-const contextBadge = document.getElementById('context-badge');
-const contextText = document.getElementById('context-text');
+const contextAppName = document.getElementById('context-app-name');
 
 window.updateContext = function (data) {
     if (!data) return;
 
-    // Format: "App Name | Window Title"
-    // If Title is same as App Name, just show App Name
+    // Show App Name on Top Left
+    // Format: "App Name" (maybe tooltip has title?)
+    // User wants "current running application name"
+
     let text = data.app;
+    // We could add title to tooltip?
     if (data.title && data.title !== data.app) {
-        // Truncate title if too long
-        let displayTitle = data.title;
-        if (displayTitle.length > 30) {
-            displayTitle = displayTitle.substring(0, 30) + "...";
-        }
-        text = `${data.app} | ${displayTitle}`;
+        contextAppName.title = `${data.app}: ${data.title}`;
+    } else {
+        contextAppName.title = data.app;
     }
 
-    contextText.textContent = text;
-    contextBadge.classList.remove('hidden');
+    contextAppName.textContent = text;
 }
 
 userInput.addEventListener('keydown', (e) => {
@@ -101,3 +99,59 @@ function addMessage(role, text) {
     chatContainer.appendChild(msgDiv);
     chatContainer.scrollTop = chatContainer.scrollHeight;
 }
+
+/* --- Settings Logic --- */
+const settingsBtn = document.getElementById('settings-btn');
+const settingsModal = document.getElementById('settings-modal');
+const cancelSettings = document.getElementById('cancel-settings');
+const saveSettings = document.getElementById('save-settings');
+
+// Toggle Modal
+settingsBtn.addEventListener('click', () => {
+    settingsModal.classList.remove('hidden');
+});
+
+cancelSettings.addEventListener('click', () => {
+    settingsModal.classList.add('hidden');
+});
+
+// Close on outside click
+settingsModal.addEventListener('click', (e) => {
+    if (e.target === settingsModal) {
+        settingsModal.classList.add('hidden');
+    }
+});
+
+// Save Keys
+saveSettings.addEventListener('click', () => {
+    const keys = {
+        notion: document.getElementById('key-notion').value,
+        trello: document.getElementById('key-trello').value,
+        github: document.getElementById('key-github').value,
+        // Only send if not empty to avoid clearing existing? 
+        // For now, backend handles empty = delete, so we send what is there.
+        // Ideally we should mask inputs and only send changed ones, 
+        // but for high security we might just treat this as a write-only interface.
+    };
+
+    // Send to Backend
+    if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.zero) {
+        window.webkit.messageHandlers.zero.postMessage(JSON.stringify({
+            type: 'save_keys',
+            data: keys
+        }));
+        // Close
+        settingsModal.classList.add('hidden');
+        // Clear inputs for security
+        document.getElementById('key-notion').value = "";
+        document.getElementById('key-trello').value = "";
+        document.getElementById('key-github').value = "";
+
+        // Feedback
+        addMessage('system', "_Keys saved securely to Keychain._");
+    } else {
+        console.log("Mock Save:", keys);
+        settingsModal.classList.add('hidden');
+        addMessage('system', "_[Mock] Keys saved securely._");
+    }
+});

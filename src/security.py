@@ -1,9 +1,36 @@
 from pydantic import BaseModel
 import re
+import keyring
 
 class SecurityException(Exception):
     """Raised when a security policy is violated."""
     pass
+
+class KeyringManager:
+    """
+    Manages secure access to API keys using the system keychain.
+    Service name is 'ZeroAgent'.
+    """
+    SERVICE_NAME = "ZeroAgent"
+
+    @staticmethod
+    def set_secret(key_name: str, secret_value: str):
+        if not secret_value:
+             # If empty, delete the key if it exists
+             try:
+                 keyring.delete_password(KeyringManager.SERVICE_NAME, key_name)
+             except keyring.errors.PasswordDeleteError:
+                 pass # Key didn't exist
+        else:
+            keyring.set_password(KeyringManager.SERVICE_NAME, key_name, secret_value)
+
+    @staticmethod
+    def get_secret(key_name: str) -> str:
+        try:
+            return keyring.get_password(KeyringManager.SERVICE_NAME, key_name) or ""
+        except Exception:
+            # Fallback or error handling
+            return ""
 
 class SecurityAirlock(BaseModel):
     """
@@ -16,6 +43,9 @@ class SecurityAirlock(BaseModel):
         """
         Redacts PII (Emails, Phone Numbers) from the text using Regex.
         """
+        if not text:
+            return ""
+            
         # Redact Emails
         email_pattern = r'[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+'
         text = re.sub(email_pattern, '[REDACTED_EMAIL]', text)

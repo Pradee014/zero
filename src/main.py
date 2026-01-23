@@ -118,11 +118,31 @@ class ZeroAppDelegate(NSObject):
     def on_user_query(self, text):
         """
         Handle user query from WebView.
-        Runs graph.stream() in a background thread.
+        Supports structured commands (JSON) or plain chat.
         """
         import threading
+        import json
         from langchain_core.messages import HumanMessage
+        from security import KeyringManager
         
+        # 1. Parsing Command
+        try:
+            data = json.loads(text)
+            if isinstance(data, dict) and data.get("type") == "save_keys":
+                keys = data.get("data", {})
+                for k, v in keys.items():
+                    # k is 'notion', 'trello', 'github'
+                    # Store as 'ZERO_NOTION_KEY' etc to avoid collisions
+                    secret_name = f"ZERO_{k.upper()}_KEY"
+                    KeyringManager.set_secret(secret_name, v)
+                
+                NSLog("Zero: Keys saved securely.")
+                # Optional: Send confirmation back? JS already handles optimistic UI.
+                return
+        except json.JSONDecodeError:
+            # Not JSON, treat as chat
+            pass
+
         def run_graph():
             # 1. Fetch Context
             context = {

@@ -32,6 +32,36 @@ html {
     transition: all 0.3s ease;
 }
 
+#header {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    z-index: 100;
+}
+
+#context-badge {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 20px;
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(10px);
+    transition: opacity 0.3s ease;
+}
+
+#context-badge.hidden {
+    opacity: 0;
+}
+
+#context-icon {
+    font-size: 14px;
+}
+
 
 
 #chat-container {
@@ -121,9 +151,38 @@ html {
     /* Regular font weight */
 }
 
+/* Fix: Reset Markdown headers to prevent large vertical gaps */
+.message-content h1,
+.message-content h2,
+.message-content h3,
+.message-content h4,
+.message-content h5,
+.message-content h6 {
+    margin: 4px 0;
+    /* Minimal spacing */
+    padding: 0;
+    font-size: inherit;
+    font-weight: 600;
+    /* Subtle bold to distinguish, or inherit if preferred */
+    line-height: 1.4;
+}
+
 #input-area {
     padding: 20px;
+    /* Border top removed for cleaner look, or keep if preferred */
     border-top: 1px solid rgba(255, 255, 255, 0.05);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.prompt-char {
+    color: var(--accent-color);
+    font-weight: bold;
+    font-family: "JetBrains Mono", monospace;
+    /* Fallback if not available */
+    font-size: 18px;
+    user-select: none;
 }
 
 #user-input {
@@ -133,12 +192,13 @@ html {
     outline: none;
     color: white;
     font-size: 16px;
-    font-family: inherit;
+    font-family: "JetBrains Mono", Menlo, Monaco, "Courier New", monospace;
     padding: 0;
 }
 
 #user-input::placeholder {
     color: rgba(255, 255, 255, 0.3);
+    font-style: italic;
 }
 
 /* Hide placeholder when typing/focused to prevent overlap/suggestion text */

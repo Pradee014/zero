@@ -11,14 +11,16 @@
 
 <body>
     <div id="app">
-        <div id="chat-container">
-            <div class="message system">
-                <span class="icon">0</span>
-                <p>System ready.</p>
+        <div id="header">
+            <div id="context-badge" class="hidden">
+
+                <span id="context-text">Desktop</span>
             </div>
         </div>
+        <div id="chat-container"></div>
         <div id="input-area">
-            <input type="text" id="user-input" placeholder="User input" autocomplete="off" autocorrect="off"
+            <span class="prompt-char">&gt;</span>
+            <input type="text" id="user-input" placeholder="Command or Ask..." autocomplete="off" autocorrect="off"
                 autocapitalize="off" spellcheck="false" autofocus>
         </div>
     </div>

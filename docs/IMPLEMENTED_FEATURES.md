@@ -60,3 +60,12 @@
     *   Local `activity.db` created in `src/database/`.
     *   **Session Tracking**: Logs App Boot time (queried from `sysctl` for accuracy).
     *   **Activity Logging**: Records `app_name`, `window_title`, `duration`, and `is_idle` for every app switch.
+
+## 6. Security (The "Airlock")
+**Status: ✅ Functional**
+
+*   **Security Airlock (`src/security.py`)**:
+    *   **Outbound Sanitization**: Automatically redacts emails and phone numbers from outgoing text using Regex (`[REDACTED_EMAIL]`, `[REDACTED_PHONE]`).
+    *   **Tool Firewall**: Intercepts tool execution requests.
+        *   **Policy**: Blocks destructive actions (e.g., `calendar.delete`) unless explicitly confirmed by the user (`user_confirmation=True`).
+    *   **Verification**: Unit tests implemented in `tests/test_security_airlock.py`.

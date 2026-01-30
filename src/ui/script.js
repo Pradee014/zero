@@ -1,22 +1,60 @@
-// Placeholder for frontend logic
+// Zero UI Logic
 console.log("Zero UI loaded");
 
-// Window Drag Logic
+/**
+ * Communicates with the Backend (PyObjC or Mock).
+ * @param {string} type - The type of message (e.g., 'drag', 'save_keys').
+ * @param {any} data - Payload to send.
+ */
+function sendMessage(type, data = {}) {
+    // Construct payload
+    // If data is simple string, wrap it? No, keeping protocol: { type, data }
+    const payload = { type, data };
+
+    if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.zero) {
+        // iOS/macOS WKWebView Handler
+        // We always JSON.stringify to avoid ObjC dict conversion issues
+        window.webkit.messageHandlers.zero.postMessage(JSON.stringify(payload));
+    } else {
+        console.log(`[Mock Backend] ${type}:`, data);
+        // Simulate responses for testing in browser
+        if (type === 'save_keys') {
+            setTimeout(() => receiveResponse("_keys saved (mock)_"), 500);
+        } else if (type === 'chat') {
+            setTimeout(() => receiveResponse(`Echo: ${data}`), 500);
+        }
+    }
+}
+
+/**
+ * Sends a raw chat message (legacy support).
+ * @param {string} text 
+ */
+function sendChat(text) {
+    if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.zero) {
+        // Backend expects raw string for chat, or JSON object?
+        // Current backend: if JSON decode fails, treats as chat.
+        // So we can send raw string.
+        window.webkit.messageHandlers.zero.postMessage(text);
+    } else {
+        console.log(`[Mock Chat]`, text);
+        setTimeout(() => receiveResponse("This is a mock response. Backend not connected."), 1000);
+    }
+}
+
+
+/* --- Window Dragging --- */
 document.addEventListener('mousedown', (e) => {
     // Defines what is "interactive" and should NOT trigger drag
-    // Inputs, Buttons, Links, Scrollbars (sometimes), etc.
-    // If the target is strictly the body, app container, or specific layout divs, we drag.
-
-    // Check if target is interactive
-    const target = e.target;
     const interactiveTags = ['INPUT', 'TEXTAREA', 'BUTTON', 'A'];
 
-    // Recursive check for interactivity (e.g. clicking icon inside button)
-    let el = target;
+    // Check if target is inside an interactive element
+    let el = e.target;
     let isInteractive = false;
+
     while (el && el !== document.body) {
         if (interactiveTags.includes(el.tagName) ||
-            el.classList.contains('message-content') ||  // Allow text selection
+            el.classList.contains('message-content') || // Allow text selection
             el.classList.contains('icon-btn') ||
             el.classList.contains('settings-modal')) {
             isInteractive = true;
@@ -26,26 +64,22 @@ document.addEventListener('mousedown', (e) => {
     }
 
     if (!isInteractive) {
-        // Trigger Native Drag
-        if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.zero) {
-            window.webkit.messageHandlers.zero.postMessage({ type: 'drag' });
-        }
+        sendMessage('drag');
     }
 });
 
+/* --- Chat Interface --- */
 const userInput = document.getElementById('user-input');
 const chatContainer = document.getElementById('chat-container');
 const contextAppName = document.getElementById('context-app-name');
 
+// Display Context Info
 window.updateContext = function (data) {
     if (!data) return;
 
-    // Show App Name on Top Left
-    // Format: "App Name" (maybe tooltip has title?)
-    // User wants "current running application name"
-
+    // data: { app: "Code", title: "project - VS Code" }
     let text = data.app;
-    // We could add title to tooltip?
+
     if (data.title && data.title !== data.app) {
         contextAppName.title = `${data.app}: ${data.title}`;
     } else {
@@ -55,6 +89,7 @@ window.updateContext = function (data) {
     contextAppName.textContent = text;
 }
 
+// User Input
 userInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
         const text = userInput.value.trim();
@@ -62,44 +97,38 @@ userInput.addEventListener('keydown', (e) => {
             addMessage('user', text);
             userInput.value = '';
 
-            // Send to Backend
-            if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.zero) {
-                window.webkit.messageHandlers.zero.postMessage(text);
-
-                // Add temporary loading indicator or just wait
-                // For now, we wait for receiveResponse
-            } else {
-                console.log("Zero Backend not found (Browser mode?)");
-                // Mock response for testing in browser
-                setTimeout(() => receiveResponse("This is a mock response. Backend not connected."), 1000);
-            }
+            // Send to backend
+            // For standard chat, we send raw text as per current protocol
+            sendChat(text);
         }
     }
 });
 
-// Called by Python backend
+/* --- Response Handling --- */
+
+// Append full response (legacy)
 window.receiveResponse = function (text) {
     addMessage('system', text);
 }
 
-// Called by Python backend for streaming
+// Stream response chunk
 window.streamResponse = function (chunk) {
     const lastMsg = chatContainer.lastElementChild;
+
     // Check if last message is from system
     if (lastMsg && lastMsg.classList.contains('system')) {
         const p = lastMsg.querySelector('.message-content');
-        // Simple append for now
-        // TODO: Smarter markdown rendering for partials? 
-        // For now, we append text and re-render the whole block to keep markdown valid
-        // But re-rendering markdown on every char is expensive/flickery.
-        // Let's just append raw text for now? 
-        // Or keep a data attribute with raw text?
 
-        // Strategy: Append to raw text, then re-render.
+        // Append to raw text storage
         let raw = p.getAttribute('data-raw') || "";
         raw += chunk;
         p.setAttribute('data-raw', raw);
+
+        // Render Markdown
+        // Optimization TODO: buffer updates or use a streaming markdown parser
         p.innerHTML = marked.parse(raw);
+
+        // scroll to bottom
         chatContainer.scrollTop = chatContainer.scrollHeight;
     } else {
         // Start new message
@@ -107,10 +136,15 @@ window.streamResponse = function (chunk) {
         // Ensure data-raw is set on the new message
         const newMsg = chatContainer.lastElementChild;
         const p = newMsg.querySelector('.message-content');
-        p.setAttribute('data-raw', chunk);
+        if (p) p.setAttribute('data-raw', chunk);
     }
 }
 
+/**
+ * Adds a message bubble to the chat.
+ * @param {string} role - 'user' or 'system'
+ * @param {string} text - Content (Markdown supported)
+ */
 function addMessage(role, text) {
     const msgDiv = document.createElement('div');
     msgDiv.className = `message ${role}`;
@@ -118,10 +152,10 @@ function addMessage(role, text) {
     // Icon
     const icon = document.createElement('span');
     icon.className = 'icon';
-    icon.textContent = role === 'user' ? 'U' : '0'; // Changed 'Z' to '0' for system icon
+    icon.textContent = role === 'user' ? 'U' : '0';
 
-    // Text
-    const p = document.createElement('div'); // Changed to div to contain markdown HTML
+    // Content Bubble
+    const p = document.createElement('div');
     p.className = 'message-content';
     p.innerHTML = marked.parse(text);
 
@@ -132,59 +166,85 @@ function addMessage(role, text) {
     chatContainer.scrollTop = chatContainer.scrollHeight;
 }
 
-/* --- Settings Logic --- */
+
+/* --- Settings UI --- */
 const settingsBtn = document.getElementById('settings-btn');
 const settingsModal = document.getElementById('settings-modal');
 const cancelSettings = document.getElementById('cancel-settings');
 const saveSettings = document.getElementById('save-settings');
 
-// Toggle Modal
-settingsBtn.addEventListener('click', () => {
+// Tab Switching
+const tabs = document.querySelectorAll('.tab-item');
+const panels = document.querySelectorAll('.tab-panel');
+
+tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+        // Deactivate all
+        tabs.forEach(t => t.classList.remove('active'));
+        panels.forEach(p => p.classList.remove('active'));
+
+        // Activate clicked
+        tab.classList.add('active');
+        const targetId = `tab-${tab.getAttribute('data-tab')}`;
+        const targetPanel = document.getElementById(targetId);
+        if (targetPanel) targetPanel.classList.add('active');
+    });
+});
+
+// Modal Actions
+function openSettings() {
     settingsModal.classList.remove('hidden');
-});
+}
 
-cancelSettings.addEventListener('click', () => {
+function closeSettings() {
     settingsModal.classList.add('hidden');
-});
+}
 
-// Close on outside click
-settingsModal.addEventListener('click', (e) => {
-    if (e.target === settingsModal) {
-        settingsModal.classList.add('hidden');
+settingsBtn.addEventListener('click', openSettings);
+cancelSettings.addEventListener('click', closeSettings);
+
+// Global Shortcuts
+document.addEventListener('keydown', (e) => {
+    // Cmd + , to toggle settings
+    if ((e.metaKey || e.ctrlKey) && e.key === ',') {
+        e.preventDefault();
+        if (settingsModal.classList.contains('hidden')) {
+            openSettings();
+        } else {
+            closeSettings();
+        }
+    }
+    // Escape to close
+    if (e.key === 'Escape' && !settingsModal.classList.contains('hidden')) {
+        closeSettings();
     }
 });
 
-// Save Keys
+// Close on backdrop click
+settingsModal.addEventListener('click', (e) => {
+    if (e.target === settingsModal) {
+        closeSettings();
+    }
+});
+
+// Save Functionality
 saveSettings.addEventListener('click', () => {
     const keys = {
         notion: document.getElementById('key-notion').value,
         trello: document.getElementById('key-trello').value,
         github: document.getElementById('key-github').value,
-        // Only send if not empty to avoid clearing existing? 
-        // For now, backend handles empty = delete, so we send what is there.
-        // Ideally we should mask inputs and only send changed ones, 
-        // but for high security we might just treat this as a write-only interface.
     };
 
-    // Send to Backend
-    if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.zero) {
-        window.webkit.messageHandlers.zero.postMessage(JSON.stringify({
-            type: 'save_keys',
-            data: keys
-        }));
-        // Close
-        settingsModal.classList.add('hidden');
-        // Clear inputs for security
-        document.getElementById('key-notion').value = "";
-        document.getElementById('key-trello').value = "";
-        document.getElementById('key-github').value = "";
+    sendMessage('save_keys', keys);
 
-        // Feedback
-        addMessage('system', "_Keys saved securely to Keychain._");
-    } else {
-        console.log("Mock Save:", keys);
-        settingsModal.classList.add('hidden');
-        addMessage('system', "_[Mock] Keys saved securely._");
-    }
+    // UI Feedback
+    closeSettings();
+
+    // Clear inputs for security (good practice, though UX trade-off)
+    document.getElementById('key-notion').value = "";
+    document.getElementById('key-trello').value = "";
+    document.getElementById('key-github').value = "";
+
+    // Show system message
+    addMessage('system', "_Keys saved securely to Keychain._");
 });
-

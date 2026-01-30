@@ -30,6 +30,8 @@ def dev_agent_node(state: AgentState):
         f"Current App: {app_name}. Window Title: {title}. "
         f"You have access to coding tools (Git, Terminal) and general knowledge. "
         f"If the user asks for scheduling or logistics, refer them to Ops-0 (handled by router). "
+        f"IMPORTANT: When using tools, output ONLY the tool call. Do not explain your thought process before calling a tool. "
+        f"Do not wrap the tool call in markdown code blocks."
     )
     
     # Prepend System Message if not present
@@ -47,6 +49,29 @@ def dev_agent_node(state: AgentState):
     
     return {"messages": [response]}
 
+def general_agent_node(state: AgentState):
+    """
+    Agent for general conversation without tool bindings.
+    """
+    messages = state['messages']
+    
+    # System Prompt for General Chat
+    system_prompt = (
+        "You are Zero, a helpful AI assistant. "
+        "You are engaging in general conversation. "
+        "Do not try to call tools. Just answer the user's questions helpfuly."
+    )
+    
+    if not isinstance(messages[0], SystemMessage) or "Zero" not in messages[0].content:
+        messages = [SystemMessage(content=system_prompt)] + messages
+
+    # Model without tools
+    from orchestrator.llm_utils import get_llm
+    model = get_llm(default_model_name="llama3.2", model_env_var="ZERO_MODEL")
+    
+    response = model.invoke(messages)
+    return {"messages": [response]}
+
 def build_zero_graph():
     """
     Constructs the Zero Orchestrator Graph with Tool Use.
@@ -58,6 +83,7 @@ def build_zero_graph():
     workflow.add_node("router", router_node)
     workflow.add_node("dev_agent", dev_agent_node)
     workflow.add_node("ops_agent", ops_agent_node)
+    workflow.add_node("general_agent", general_agent_node)
     workflow.add_node("tools", ToolNode(ALL_TOOLS)) # Keep ALL tools available in tool node for now
     
     # Set Entry Point

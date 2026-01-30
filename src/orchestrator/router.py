@@ -50,7 +50,7 @@ def router_node(state: AgentState):
         
     return {"classification": classification}
 
-def route_dispatcher(state: AgentState) -> Literal["ops_agent", "dev_agent"]:
+def route_dispatcher(state: AgentState) -> Literal["ops_agent", "dev_agent", "general_agent"]:
     """
     Edge logic to determine the next node based on classification.
     """
@@ -58,6 +58,8 @@ def route_dispatcher(state: AgentState) -> Literal["ops_agent", "dev_agent"]:
     
     if classification == "OPS":
         return "ops_agent"
-    else:
-        # GENERAL falls back to DEV (Zero Prime) for now, as it's the main agent.
+    elif classification == "DEV":
         return "dev_agent"
+    else:
+        # GENERAL goes to non-tool agent
+        return "general_agent"

@@ -120,14 +120,14 @@ html {
     /* Extra spacing between messages */
 }
 
-/* User Messages: NOW LEFT ALIGNED */
+/* User Messages: NOW RIGHT ALIGNED */
 .message.user {
-    flex-direction: row;
+    flex-direction: row-reverse;
 }
 
-/* System Messages: NOW RIGHT ALIGNED */
+/* System Messages: NOW LEFT ALIGNED */
 .message.system {
-    flex-direction: row-reverse;
+    flex-direction: row;
 }
 
 .message .icon {
@@ -161,9 +161,9 @@ html {
     padding: 6px 10px;
     border-radius: 12px;
 
-    /* System is now Right Aligned */
-    border-top-left-radius: 12px;
-    border-top-right-radius: 2px;
+    /* System is now Left Aligned */
+    border-top-left-radius: 2px;
+    border-top-right-radius: 12px;
 
     /* Chat bubble effect for system */
     max-width: 80%;
@@ -174,10 +174,10 @@ html {
     background: var(--accent-color);
     color: white;
 
-    /* User is now Left Aligned */
+    /* User is now Right Aligned */
     border-radius: 12px;
-    border-top-left-radius: 2px;
-    border-top-right-radius: 12px;
+    border-top-left-radius: 12px;
+    border-top-right-radius: 2px;
     /* Chat bubble effect for user */
 }
 
@@ -201,6 +201,38 @@ html {
     font-weight: 600;
     /* Subtle bold to distinguish, or inherit if preferred */
     line-height: 1.4;
+}
+
+/* --- Code Blocks --- */
+.message-content pre {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 6px;
+    padding: 10px;
+    margin: 8px 0;
+    overflow-x: auto;
+    /* Enable horizontal scrolling */
+    white-space: pre;
+    /* Maintain formatting */
+    font-family: "JetBrains Mono", Menlo, Monaco, "Courier New", monospace;
+    font-size: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.message-content code {
+    font-family: "JetBrains Mono", Menlo, Monaco, "Courier New", monospace;
+    font-size: 12px;
+    background: rgba(0, 0, 0, 0.2);
+    padding: 2px 4px;
+    border-radius: 4px;
+}
+
+.message-content pre code {
+    /* Code inside PRE shouldn't have extra background/padding */
+    background: transparent;
+    padding: 0;
+    border-radius: 0;
+    display: block;
+    /* Ensure it behaves as a block for full width */
 }
 
 #input-area {

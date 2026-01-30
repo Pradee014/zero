@@ -7,16 +7,18 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from security import KeyringManager
 
 def get_trello_creds():
-    # Expecting "KEY:TOKEN" format in the secret
-    secret = KeyringManager.get_secret("ZERO_TRELLO_KEY")
-    if not secret or ":" not in secret:
-        raise ValueError("Trello Creds missing or invalid. Use 'KEY:TOKEN' format in Settings.")
-    key, token = secret.split(":", 1)
+    # Expecting separate KEY and TOKEN in environment/keychain
+    key = KeyringManager.get_secret("ZERO_TRELLO_KEY")
+    token = KeyringManager.get_secret("ZERO_TRELLO_TOKEN")
+    
+    if not key or not token:
+        raise ValueError("Trello Creds missing. Please set ZERO_TRELLO_KEY and ZERO_TRELLO_TOKEN in .env or Settings.")
+        
     return key.strip(), token.strip()
 
 @tool("trello_get_boards")
 def get_boards() -> str:
-    """Get list of Trello boards."""
+    """Get list of Trello boards. Authentication is handled automatically."""
     try:
         key, token = get_trello_creds()
         url = f"https://api.trello.com/1/members/me/boards?key={key}&token={token}"
@@ -34,7 +36,7 @@ def get_boards() -> str:
 
 @tool("trello_add_card")
 def add_card(list_id: str, name: str, desc: str = "") -> str:
-    """Add a card to a Trello list."""
+    """Add a card to a Trello list. Authentication is handled automatically."""
     try:
         key, token = get_trello_creds()
         url = "https://api.trello.com/1/cards"

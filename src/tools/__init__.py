@@ -18,3 +18,21 @@ ALL_TOOLS = [
     get_issues,
     create_issue
 ]
+
+# Core Tools for Ops-0 (COO)
+OPS_TOOLS = [
+    calendar_ops,
+    email_ops,
+    get_current_time,
+    search_notion,
+    create_page,
+    get_boards,
+    add_card
+]
+
+# Core Tools for Dev-0 (CTO)
+DEV_TOOLS = [
+    get_issues,
+    create_issue,
+    get_current_time
+]

@@ -168,13 +168,15 @@ class ZeroAppDelegate(NSObject):
                 for event in self.graph.stream(inputs):
                     # event is typically {'node_name': state_update}
                     for node, values in event.items():
-                        if "messages" in values:
+                        if values and "messages" in values:
                             # Get the last message which is the response
                             last_msg = values["messages"][-1]
                             # Stream the content
                             self.webview.stream_response(last_msg.content)
                             
             except Exception as e:
+                import traceback
+                traceback.print_exc()
                 NSLog(f"Zero: Graph Error: {e}")
                 self.webview.stream_response(f"**Error:** {str(e)}")
                 

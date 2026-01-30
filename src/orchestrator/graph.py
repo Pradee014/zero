@@ -9,11 +9,13 @@ from langgraph.prebuilt import ToolNode, tools_condition
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
 from langchain_openai import ChatOpenAI
 from orchestrator.state import AgentState
-from tools import ALL_TOOLS
+from tools import ALL_TOOLS, DEV_TOOLS, OPS_TOOLS
+from orchestrator.agents.ops import ops_agent_node
+from orchestrator.router import router_node, route_dispatcher
 
-def agent_node(state: AgentState):
+def dev_agent_node(state: AgentState):
     """
-    The main agent node that calls the LLM with tools.
+    The main/dev agent node that calls the LLM with tools.
     """
     messages = state['messages']
     
@@ -24,35 +26,22 @@ def agent_node(state: AgentState):
     
     # System Prompt
     system_prompt = (
-        f"You are Zero, an intelligent AI agent integrated into macOS. "
+        f"You are Zero (Dev-0), an agentic AI coder. "
         f"Current App: {app_name}. Window Title: {title}. "
-        f"You have access to local tools (Calendar, Mail) and cloud tools (Notion, Trello, GitHub). "
-        f"Use them to fulfill the user's request. "
-        f"For security, ask for confirmation before destructive actions (though tools should handle safety). "
-        f"Keep responses concise."
+        f"You have access to coding tools (Git, Terminal) and general knowledge. "
+        f"If the user asks for scheduling or logistics, refer them to Ops-0 (handled by router). "
     )
     
     # Prepend System Message if not present
-    if not isinstance(messages[0], SystemMessage):
+    if not isinstance(messages[0], SystemMessage) or "Dev-0" not in messages[0].content:
         messages = [SystemMessage(content=system_prompt)] + messages
     
     # Model
-    # Manufacturer: OpenAI Compatible (Ollama Cloud supports /v1/)
-    model_name = os.getenv("ZERO_MODEL", "llama3.2")
-    base_url = os.getenv("ZERO_OLLAMA_HOST", "http://localhost:11434")
-    api_key = os.getenv("ZERO_API_KEY", "EMPTY") # OpenAI client needs a key, use placeholder if missing
-    
-    # If host is ollama.com, ensure /v1 is used if not present
-    if "ollama.com" in base_url and "/v1" not in base_url:
-        base_url = f"{base_url}/v1"
-
-    model = ChatOpenAI(
-        model=model_name,
-        temperature=0,
-        base_url=base_url,
-        api_key=api_key
-    )
-    model_with_tools = model.bind_tools(ALL_TOOLS)
+    # Use centralized LLM utility (supports Groq & Ollama)
+    from orchestrator.llm_utils import get_llm
+    model = get_llm(default_model_name="llama3.2", model_env_var="ZERO_MODEL")
+    # Bind DEV tools specifically
+    model_with_tools = model.bind_tools(DEV_TOOLS)
     
     response = model_with_tools.invoke(messages)
     
@@ -65,18 +54,44 @@ def build_zero_graph():
     workflow = StateGraph(AgentState)
     
     # Add Nodes
-    workflow.add_node("agent", agent_node)
-    workflow.add_node("tools", ToolNode(ALL_TOOLS))
+    # Add Nodes
+    workflow.add_node("router", router_node)
+    workflow.add_node("dev_agent", dev_agent_node)
+    workflow.add_node("ops_agent", ops_agent_node)
+    workflow.add_node("tools", ToolNode(ALL_TOOLS)) # Keep ALL tools available in tool node for now
     
     # Set Entry Point
-    workflow.set_entry_point("agent")
+    workflow.set_entry_point("router")
     
     # Add Edges
+    # Router -> Agent
     workflow.add_conditional_edges(
-        "agent",
+        "router",
+        route_dispatcher
+    )
+    
+    # Agent -> Tools (Dev)
+    workflow.add_conditional_edges(
+        "dev_agent",
         tools_condition,
     )
-    workflow.add_edge("tools", "agent")
+    
+    # Agent -> Tools (Ops)
+    workflow.add_conditional_edges(
+        "ops_agent",
+        tools_condition,
+    )
+    
+    # Tools -> Agent (Loop back)
+    # Critical: Use the last sender to determine where to return?
+    # For simplicity in LangGraph, ToolNode returns to a fixed node or we use conditional logic.
+    # We need a "router" for return? Or just have tools return to a 'dispatcher' that checks context.
+    # SIMPLIFICATION: For now, Tools return to 'router' (which re-evaluates) OR we hardcode return.
+    # Let's use a "Any Agent" return strategy. 
+    # Actually, standard pattern is agent -> tool -> agent.
+    # We need separate tool nodes or a conditional edge from tools.
+    
+    workflow.add_edge("tools", "router") # Sending back to router is safest to re-orient context
     
     # Compile
     app = workflow.compile()

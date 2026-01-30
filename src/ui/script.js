@@ -1,6 +1,38 @@
 // Placeholder for frontend logic
 console.log("Zero UI loaded");
 
+// Window Drag Logic
+document.addEventListener('mousedown', (e) => {
+    // Defines what is "interactive" and should NOT trigger drag
+    // Inputs, Buttons, Links, Scrollbars (sometimes), etc.
+    // If the target is strictly the body, app container, or specific layout divs, we drag.
+
+    // Check if target is interactive
+    const target = e.target;
+    const interactiveTags = ['INPUT', 'TEXTAREA', 'BUTTON', 'A'];
+
+    // Recursive check for interactivity (e.g. clicking icon inside button)
+    let el = target;
+    let isInteractive = false;
+    while (el && el !== document.body) {
+        if (interactiveTags.includes(el.tagName) ||
+            el.classList.contains('message-content') ||  // Allow text selection
+            el.classList.contains('icon-btn') ||
+            el.classList.contains('settings-modal')) {
+            isInteractive = true;
+            break;
+        }
+        el = el.parentElement;
+    }
+
+    if (!isInteractive) {
+        // Trigger Native Drag
+        if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.zero) {
+            window.webkit.messageHandlers.zero.postMessage({ type: 'drag' });
+        }
+    }
+});
+
 const userInput = document.getElementById('user-input');
 const chatContainer = document.getElementById('chat-container');
 const contextAppName = document.getElementById('context-app-name');
@@ -155,3 +187,4 @@ saveSettings.addEventListener('click', () => {
         addMessage('system', "_[Mock] Keys saved securely._");
     }
 });
+

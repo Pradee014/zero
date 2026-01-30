@@ -26,11 +26,17 @@ class KeyringManager:
 
     @staticmethod
     def get_secret(key_name: str) -> str:
+        # 1. Try Keyring (System Keychain)
         try:
-            return keyring.get_password(KeyringManager.SERVICE_NAME, key_name) or ""
+            secret = keyring.get_password(KeyringManager.SERVICE_NAME, key_name)
+            if secret:
+                return secret
         except Exception:
-            # Fallback or error handling
-            return ""
+            pass # Fallback to env
+        
+        # 2. Try Environment Variables
+        import os
+        return os.environ.get(key_name, "")
 
 class SecurityAirlock(BaseModel):
     """

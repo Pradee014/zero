@@ -16,9 +16,43 @@ class ZeroScriptHandler(NSObject):
     def userContentController_didReceiveScriptMessage_(self, controller, message):
         if message.name() == "zero":
             body = message.body()
-            # body should be a dict or string
-            # Assuming body is dict {type: 'query', text: '...'} or just text
-            text = body
+            # Logic to parse body (string, dict, or weird ObjC dict)
+            data = None
+            if isinstance(body, str):
+                try:
+                    data = json.loads(body)
+                except:
+                    data = body # assume raw string
+            else:
+                # It's likely a PyObjC wrapper (NSFrozenDictionaryM/__NSCFDictionary)
+                # We can try to cast to dict, or just treat it as dict-like
+                data = body
+            
+            # If data is a dict-like object (handled by PyObjC bridge)
+            # 1. Handle Window Drag
+            drag_type = None
+            try:
+                # specific check because 'get' might not exist on ALL objc objects
+                # but usually works for dicts
+                drag_type = data.get("type")
+            except:
+                pass
+
+            if drag_type == "drag":
+                # Must happen on next runloop event usually, but performWindowDragWithEvent 
+                # needs the CURRENT event.
+                app = Cocoa.NSApplication.sharedApplication()
+                event = app.currentEvent()
+                if event and self.webview.window():
+                     self.webview.window().performWindowDragWithEvent_(event)
+                return
+            
+
+            
+
+
+            # 2. Legacy/Standard Query Handling
+            text = body # Pass raw body if simpler, or extract 'text'
             
             # Delegate to WebView's assigned callback
             if hasattr(self.webview, 'on_query') and self.webview.on_query:

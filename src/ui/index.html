@@ -6,22 +6,109 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ZERO</title>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <link rel="stylesheet" href="style.css?v=2">
+    <link rel="stylesheet" href="style.css?v=5">
 </head>
 
 <body>
     <div id="app">
         <div id="header">
-            <div id="context-badge" class="hidden">
-
-                <span id="context-text">Desktop</span>
+            <div id="context-app-name">Desktop</div>
+            <div id="header-right">
+                <div id="controls">
+                    <div id="settings-btn" class="icon-btn" title="Settings">⚙️</div>
+                </div>
             </div>
         </div>
+
+        <!-- Settings Modal -->
+        <div id="settings-modal" class="modal hidden">
+            <div class="modal-content settings-modal-content">
+                <div class="settings-sidebar">
+                    <div class="settings-header">Settings</div>
+                    <ul class="settings-tabs">
+                        <li class="tab-item active" data-tab="models">Models</li>
+                        <li class="tab-item" data-tab="agents">Agents</li>
+                        <li class="tab-item" data-tab="voice">Voice</li>
+                        <li class="tab-item" data-tab="stats">Stats</li>
+                        <li class="tab-item" data-tab="system">System</li>
+                    </ul>
+                </div>
+                <div class="settings-main">
+                    <!-- Models Tab -->
+                    <div id="tab-models" class="tab-panel active">
+                        <h3>Models</h3>
+                        <p class="modal-desc">Configure your LLM providers and models.</p>
+                        <!-- Placeholders for future implementation -->
+                        <div class="input-group">
+                            <label>Default Model</label>
+                            <input type="text" placeholder="e.g. gpt-4o" disabled>
+                        </div>
+                    </div>
+
+                    <!-- Agents Tab -->
+                    <div id="tab-agents" class="tab-panel">
+                        <h3>Agents</h3>
+                        <p class="modal-desc">Manage active agents and capabilities.</p>
+                        <div class="input-group">
+                            <label>Active Agents</label>
+                            <input type="text" placeholder="0 Active" disabled>
+                        </div>
+                    </div>
+
+                    <!-- Voice Tab -->
+                    <div id="tab-voice" class="tab-panel">
+                        <h3>Voice</h3>
+                        <p class="modal-desc">Voice input/output settings.</p>
+                        <div class="input-group">
+                            <label>Input Device</label>
+                            <input type="text" placeholder="Default Microphone" disabled>
+                        </div>
+                    </div>
+
+                    <!-- Stats Tab -->
+                    <div id="tab-stats" class="tab-panel">
+                        <h3>Stats</h3>
+                        <p class="modal-desc">Usage statistics and performance metrics.</p>
+                        <div class="input-group">
+                            <label>Total Tokens</label>
+                            <input type="text" placeholder="0" disabled>
+                        </div>
+                    </div>
+
+                    <!-- System Tab -->
+                    <div id="tab-system" class="tab-panel">
+                        <h3>System</h3>
+                        <p class="modal-desc">System configuration and API keys.</p>
+
+                        <div class="input-group">
+                            <label>Notion Integration Token</label>
+                            <input type="password" id="key-notion" placeholder="secret_...">
+                        </div>
+
+                        <div class="input-group">
+                            <label>Trello API Key</label>
+                            <input type="password" id="key-trello" placeholder="Valid API Key">
+                        </div>
+
+                        <div class="input-group">
+                            <label>GitHub Personal Access Token</label>
+                            <input type="password" id="key-github" placeholder="ghp_...">
+                        </div>
+                    </div>
+
+                    <div class="modal-actions">
+                        <button id="cancel-settings" class="btn secondary">Close</button>
+                        <button id="save-settings" class="btn primary">Save All</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div id="chat-container"></div>
         <div id="input-area">
             <span class="prompt-char">&gt;</span>
-            <input type="text" id="user-input" placeholder="Command or Ask..." autocomplete="off" autocorrect="off"
-                autocapitalize="off" spellcheck="false" autofocus>
+            <input type="text" id="user-input" placeholder="Just ask... (e.g. 'Draft email to Bob')" autocomplete="off"
+                autocorrect="off" autocapitalize="off" spellcheck="false" autofocus>
         </div>
     </div>
     <script src="script.js"></script>

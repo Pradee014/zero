@@ -1,9 +1,25 @@
 :root {
+    /* Core Colors */
     --bg-color: rgba(15, 23, 42, 1);
     --text-color: #ffffff;
     --accent-color: #2563eb;
-    /* Vivid Blue */
-    --border-color: #444;
+
+    /* UI Elements */
+    --border-color: rgba(255, 255, 255, 0.1);
+    --input-bg: rgba(0, 0, 0, 0.2);
+    --item-hover-bg: rgba(255, 255, 255, 0.05);
+    --item-active-bg: rgba(255, 255, 255, 0.1);
+
+    /* Glass/Modal */
+    --modal-bg: rgba(30, 41, 59, 0.85);
+    --modal-bg-ghost: rgba(30, 41, 59, 0.6);
+    --modal-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+    --backdrop-blur: 20px;
+
+    /* Text */
+    --text-muted: rgba(255, 255, 255, 0.6);
+    --text-subtle: rgba(255, 255, 255, 0.3);
+    --system-icon-bg: #444;
 }
 
 body,
@@ -15,7 +31,6 @@ html {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     color: var(--text-color);
     background: transparent;
-    /* Main window handles transparency */
     overflow: hidden;
 }
 
@@ -26,78 +41,103 @@ html {
     background-color: var(--bg-color);
     border-radius: 12px;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--border-color);
+    backdrop-filter: blur(var(--backdrop-blur));
+    -webkit-backdrop-filter: blur(var(--backdrop-blur));
     transition: all 0.3s ease;
 }
 
 #header {
     position: absolute;
     top: 20px;
+    left: 20px;
     right: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     z-index: 100;
+    pointer-events: none;
 }
 
-#context-badge {
-    background: rgba(255, 255, 255, 0.1);
+#header>* {
+    pointer-events: auto;
+}
+
+#context-app-name {
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    color: rgba(255, 255, 255, 0.9);
+    text-transform: uppercase;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+    background: var(--item-active-bg);
     border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 20px;
     padding: 6px 12px;
-    font-size: 12px;
-    font-weight: 500;
+    backdrop-filter: blur(10px);
+}
+
+#header-right {
     display: flex;
     align-items: center;
-    gap: 6px;
-    color: rgba(255, 255, 255, 0.8);
-    backdrop-filter: blur(10px);
-    transition: opacity 0.3s ease;
+    gap: 12px;
 }
 
-#context-badge.hidden {
-    opacity: 0;
+#controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
 }
 
-#context-icon {
-    font-size: 14px;
+.icon-btn {
+    cursor: pointer;
+    padding: 6px;
+    border-radius: 6px;
+    background: var(--item-active-bg);
+    transition: background 0.2s;
+    font-size: 16px;
+    user-select: none;
+    opacity: 0.7;
 }
 
-
+.icon-btn:hover {
+    opacity: 1.0;
+    background: rgba(255, 255, 255, 0.2);
+}
 
 #chat-container {
     flex: 1;
     padding: 20px;
+    padding-top: 60px;
     overflow-y: auto;
     display: flex;
     flex-direction: column;
     gap: 15px;
+    mask-image: linear-gradient(to bottom, transparent 0px, black 60px);
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0px, black 60px);
 }
 
 .message {
     display: flex;
     gap: 12px;
     align-items: flex-end;
-    /* Align icon to bottom of matching bubble if multi-line */
     line-height: 1.5;
     font-size: 14px;
     margin-bottom: 8px;
-    /* Extra spacing between messages */
 }
 
-/* User Messages: NOW LEFT ALIGNED */
 .message.user {
-    flex-direction: row;
+    flex-direction: row-reverse;
 }
 
-/* System Messages: NOW RIGHT ALIGNED */
 .message.system {
-    flex-direction: row-reverse;
+    flex-direction: row;
 }
 
 .message .icon {
     width: 28px;
     height: 28px;
-    background: rgba(255, 255, 255, 0.1);
+    background: var(--item-active-bg);
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -106,30 +146,23 @@ html {
     font-weight: bold;
     flex-shrink: 0;
     margin-bottom: 4px;
-    /* Slight adjust for alignment */
 }
 
-/* Specific icon colors */
 .message.user .icon {
     background: var(--accent-color);
     color: white;
 }
 
 .message.system .icon {
-    background: #444;
+    background: var(--system-icon-bg);
 }
 
 .message-content {
-    background: rgba(255, 255, 255, 0.05);
-    /* Default system color */
+    background: var(--item-hover-bg);
     padding: 6px 10px;
     border-radius: 12px;
-
-    /* System is now Right Aligned */
-    border-top-left-radius: 12px;
-    border-top-right-radius: 2px;
-
-    /* Chat bubble effect for system */
+    border-top-left-radius: 2px;
+    border-top-right-radius: 12px;
     max-width: 80%;
     word-wrap: break-word;
 }
@@ -137,21 +170,16 @@ html {
 .message.user .message-content {
     background: var(--accent-color);
     color: white;
-
-    /* User is now Left Aligned */
     border-radius: 12px;
-    border-top-left-radius: 2px;
-    border-top-right-radius: 12px;
-    /* Chat bubble effect for user */
+    border-top-left-radius: 12px;
+    border-top-right-radius: 2px;
 }
 
 .message-content p {
     margin: 0;
     font-weight: 400;
-    /* Regular font weight */
 }
 
-/* Fix: Reset Markdown headers to prevent large vertical gaps */
 .message-content h1,
 .message-content h2,
 .message-content h3,
@@ -159,17 +187,41 @@ html {
 .message-content h5,
 .message-content h6 {
     margin: 4px 0;
-    /* Minimal spacing */
     padding: 0;
     font-size: inherit;
     font-weight: 600;
-    /* Subtle bold to distinguish, or inherit if preferred */
     line-height: 1.4;
+}
+
+.message-content pre {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 6px;
+    padding: 10px;
+    margin: 8px 0;
+    overflow-x: auto;
+    white-space: pre;
+    font-family: "JetBrains Mono", Menlo, Monaco, "Courier New", monospace;
+    font-size: 12px;
+    border: 1px solid var(--border-color);
+}
+
+.message-content code {
+    font-family: "JetBrains Mono", Menlo, Monaco, "Courier New", monospace;
+    font-size: 12px;
+    background: var(--input-bg);
+    padding: 2px 4px;
+    border-radius: 4px;
+}
+
+.message-content pre code {
+    background: transparent;
+    padding: 0;
+    border-radius: 0;
+    display: block;
 }
 
 #input-area {
     padding: 20px;
-    /* Border top removed for cleaner look, or keep if preferred */
     border-top: 1px solid rgba(255, 255, 255, 0.05);
     display: flex;
     align-items: center;
@@ -180,7 +232,6 @@ html {
     color: var(--accent-color);
     font-weight: bold;
     font-family: "JetBrains Mono", monospace;
-    /* Fallback if not available */
     font-size: 18px;
     user-select: none;
 }
@@ -197,16 +248,14 @@ html {
 }
 
 #user-input::placeholder {
-    color: rgba(255, 255, 255, 0.3);
+    color: var(--text-subtle);
     font-style: italic;
 }
 
-/* Hide placeholder when typing/focused to prevent overlap/suggestion text */
 #user-input:focus::placeholder {
     color: transparent;
 }
 
-/* Scrollbar styling */
 ::-webkit-scrollbar {
     width: 8px;
 }
@@ -216,7 +265,7 @@ html {
 }
 
 ::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.1);
+    background: var(--item-active-bg);
     border-radius: 4px;
 }
 
@@ -228,48 +277,34 @@ html {
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
     text-shadow: 0 1px 1px rgba(0, 0, 0, 0.4);
-    /* Micro-Shadow: Crisp, not fuzzy */
 }
 
-/* Remove floating line in ghost mode */
 #app.ghost-mode #input-area {
     border-top: none;
 }
 
-/* Clear bubbles in ghost mode - clean floating text */
 #app.ghost-mode .message-content {
-    background: rgba(255, 255, 255, 0.05);
-    /* Restore default background */
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    /* Add subtle border for definition */
+    background: var(--item-hover-bg);
+    border: 1px solid var(--border-color);
     backdrop-filter: blur(5px);
-    /* Add slight blur for readability */
     padding: 6px 10px;
-    /* Match base padding exactly */
-    /* Remove asymmetric padding which was for old alignment */
 }
 
 #app.ghost-mode .message.user .message-content {
     background: var(--accent-color);
-    /* Restore accent bg */
-    color: white;
     text-shadow: none;
-    /* Remove text shadow as we have a bg now */
 }
 
-/* Hide scrollbars in ghost mode to prevent floating artifacts */
 #app.ghost-mode ::-webkit-scrollbar {
     width: 0px;
     background: transparent;
 }
 
-/* Improve placeholder contrast in ghost mode */
 #app.ghost-mode #user-input::placeholder {
     color: rgba(255, 255, 255, 0.8);
     text-shadow: 0 1px 1px rgba(0, 0, 0, 0.4);
 }
 
-/* Aggressive Font Weight Reset */
 .message-content,
 .message-content p,
 .message-content strong,
@@ -277,4 +312,198 @@ html {
 .message-content * {
     font-weight: 400 !important;
     -webkit-font-smoothing: antialiased;
+}
+
+#app.ghost-mode .modal-content {
+    background: var(--modal-bg-ghost);
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2);
+    border: 1px solid var(--border-color);
+}
+
+/* --- Modal --- */
+.modal {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(5px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    opacity: 1;
+    transition: opacity 0.2s ease;
+}
+
+.modal.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.modal-content {
+    background: var(--modal-bg);
+    backdrop-filter: blur(var(--backdrop-blur));
+    -webkit-backdrop-filter: blur(var(--backdrop-blur));
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    width: 600px;
+    height: 450px;
+    box-shadow: var(--modal-shadow);
+    display: flex;
+    flex-direction: row;
+    gap: 0;
+    overflow: hidden;
+    padding: 0;
+}
+
+.modal-content h3 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.modal-desc {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin: 0;
+    line-height: 1.4;
+}
+
+.input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.input-group label {
+    font-size: 12px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.input-group input {
+    background: var(--input-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 8px 10px;
+    color: white;
+    font-size: 14px;
+    font-family: inherit;
+    outline: none;
+}
+
+.input-group input:focus {
+    border-color: var(--accent-color);
+}
+
+.modal-actions {
+    margin-top: auto;
+    padding-top: 20px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.btn {
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    transition: background 0.2s;
+}
+
+.btn.primary {
+    background: var(--accent-color);
+    color: white;
+}
+
+.btn.primary:hover {
+    filter: brightness(1.1);
+}
+
+.btn.secondary {
+    background: transparent;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.btn.secondary:hover {
+    color: white;
+    background: var(--item-hover-bg);
+}
+
+/* --- Settings Sidebar --- */
+.settings-sidebar {
+    width: 150px;
+    background: var(--input-bg);
+    border-right: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+}
+
+.settings-header {
+    padding: 20px;
+    font-size: 14px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.5);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.settings-tabs {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.tab-item {
+    padding: 10px 20px;
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.7);
+    cursor: pointer;
+    transition: all 0.2s;
+    border-left: 2px solid transparent;
+}
+
+.tab-item:hover {
+    background: var(--item-hover-bg);
+    color: white;
+}
+
+.tab-item.active {
+    background: var(--item-active-bg);
+    color: white;
+    border-left-color: var(--accent-color);
+}
+
+/* --- Settings Main Content --- */
+.settings-main {
+    flex: 1;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+}
+
+.tab-panel {
+    display: none;
+    flex: 1;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.tab-panel.active {
+    display: flex;
+}
+
+.tab-panel h3 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: white;
 }

@@ -118,11 +118,31 @@ class ZeroAppDelegate(NSObject):
     def on_user_query(self, text):
         """
         Handle user query from WebView.
-        Runs graph.stream() in a background thread.
+        Supports structured commands (JSON) or plain chat.
         """
         import threading
+        import json
         from langchain_core.messages import HumanMessage
+        from security import KeyringManager
         
+        # 1. Parsing Command
+        try:
+            data = json.loads(text)
+            if isinstance(data, dict) and data.get("type") == "save_keys":
+                keys = data.get("data", {})
+                for k, v in keys.items():
+                    # k is 'notion', 'trello', 'github'
+                    # Store as 'ZERO_NOTION_KEY' etc to avoid collisions
+                    secret_name = f"ZERO_{k.upper()}_KEY"
+                    KeyringManager.set_secret(secret_name, v)
+                
+                NSLog("Zero: Keys saved securely.")
+                # Optional: Send confirmation back? JS already handles optimistic UI.
+                return
+        except json.JSONDecodeError:
+            # Not JSON, treat as chat
+            pass
+
         def run_graph():
             # 1. Fetch Context
             context = {
@@ -148,13 +168,15 @@ class ZeroAppDelegate(NSObject):
                 for event in self.graph.stream(inputs):
                     # event is typically {'node_name': state_update}
                     for node, values in event.items():
-                        if "messages" in values:
+                        if values and "messages" in values:
                             # Get the last message which is the response
                             last_msg = values["messages"][-1]
                             # Stream the content
                             self.webview.stream_response(last_msg.content)
                             
             except Exception as e:
+                import traceback
+                traceback.print_exc()
                 NSLog(f"Zero: Graph Error: {e}")
                 self.webview.stream_response(f"**Error:** {str(e)}")
                 

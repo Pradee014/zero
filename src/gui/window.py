@@ -54,10 +54,46 @@ class ZeroPanel(NSPanel):
         return True
 
     def performKeyEquivalent_(self, event):
+        modifiers = event.modifierFlags()
+        
+        # Cmd + Opt + Arrows for Moving Window
+        if (modifiers & Cocoa.NSEventModifierFlagCommand) and (modifiers & Cocoa.NSEventModifierFlagOption):
+            key = event.charactersIgnoringModifiers()
+            # Handle Arrows (Special keys)
+            # Arrow keys often come as specific unicode or virtual key codes. 
+            # charactersIgnoringModifiers for arrows might be empty or specific values on some layouts.
+            # Safer to check keyCode or specific selector.
+            
+            # Key Codes for Arrows (standard):
+            # Left: 123, Right: 124, Down: 125, Up: 126
+            code = event.keyCode()
+            current_frame = self.frame()
+            origin = current_frame.origin
+            step = 50
+            
+            moved = False
+            if code == 123: # Left
+                origin.x -= step
+                moved = True
+            elif code == 124: # Right
+                origin.x += step
+                moved = True
+            elif code == 126: # Up (Screen coords: Up is +Y)
+                origin.y += step
+                moved = True
+            elif code == 125: # Down (Screen coords: Down is -Y)
+                origin.y -= step
+                moved = True
+            
+            if moved:
+                self.setFrameOrigin_(origin)
+                return True
+        
         # Handle Cmd+Q
-        if event.modifierFlags() & Cocoa.NSEventModifierFlagCommand:
+        if modifiers & Cocoa.NSEventModifierFlagCommand:
             chars = event.charactersIgnoringModifiers()
             if chars and chars.lower() == 'q':
                 Cocoa.NSApplication.sharedApplication().terminate_(self)
                 return True
+                
         return objc.super(ZeroPanel, self).performKeyEquivalent_(event)

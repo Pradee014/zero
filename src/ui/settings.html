@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zero Settings</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body {
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            height: 100vh;
+            color: var(--text-color);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        /* Reformatted for full window */
+        .settings-container {
+            display: flex;
+            flex-direction: row;
+            width: 100%;
+            height: 100%;
+        }
+
+        .settings-sidebar {
+            width: 180px;
+            /* Slightly wider for standalone window */
+            background: rgba(0, 0, 0, 0.2);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .settings-main {
+            flex: 1;
+            padding: 30px;
+            overflow-y: auto;
+            background: transparent;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="settings-container">
+        <div class="settings-sidebar">
+            <div class="settings-header">Settings</div>
+            <ul class="settings-tabs">
+                <li class="tab-item active" data-tab="models">Models</li>
+                <li class="tab-item" data-tab="cortex">Cortex <span style="font-size:10px">🧠</span></li>
+                <li class="tab-item" data-tab="agents">Agents</li>
+                <li class="tab-item" data-tab="voice">Voice</li>
+                <li class="tab-item" data-tab="stats">Stats</li>
+                <li class="tab-item" data-tab="system">System</li>
+            </ul>
+        </div>
+        <div class="settings-main">
+            <!-- Models Tab -->
+            <div id="tab-models" class="tab-panel active">
+                <h3>Models</h3>
+                <p class="modal-desc">Configure your LLM providers and models.</p>
+                <div class="input-group">
+                    <label>Default Model</label>
+                    <input type="text" placeholder="e.g. gpt-4o" disabled>
+                </div>
+            </div>
+
+            <!-- Cortex Tab -->
+            <div id="tab-cortex" class="tab-panel">
+                <h3>Cortex Memory</h3>
+                <p class="modal-desc">Inspect Agent's episodic memory and active context.</p>
+
+                <div class="cortex-content" style="padding:0; overflow:visible;">
+                    <!-- Short Term (Tasks) -->
+                    <div class="cortex-section">
+                        <div class="section-label">SHORT TERM</div>
+                        <div id="cortex-tasks-list" class="cortex-list">
+                            <div class="cortex-empty">No active tasks.</div>
+                        </div>
+                    </div>
+
+                    <!-- Long Term (Memory) -->
+                    <div class="cortex-section">
+                        <div class="section-label">LONG TERM</div>
+                        <div id="cortex-memories-list" class="cortex-timeline">
+                            <div class="cortex-empty">No memories yet.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <button id="refresh-cortex-btn" class="btn secondary" style="margin-top:10px; align-self:start;">🔄
+                    Refresh Data</button>
+            </div>
+
+            <!-- Agents Tab -->
+            <div id="tab-agents" class="tab-panel">
+                <h3>Agents</h3>
+                <p class="modal-desc">Manage active agents and capabilities.</p>
+                <div class="input-group">
+                    <label>Active Agents</label>
+                    <input type="text" placeholder="0 Active" disabled>
+                </div>
+            </div>
+
+            <!-- Voice Tab -->
+            <div id="tab-voice" class="tab-panel">
+                <h3>Voice</h3>
+                <p class="modal-desc">Voice input/output settings.</p>
+                <div class="input-group">
+                    <label>Input Device</label>
+                    <input type="text" placeholder="Default Microphone" disabled>
+                </div>
+            </div>
+
+            <!-- Stats Tab -->
+            <div id="tab-stats" class="tab-panel">
+                <h3>Stats</h3>
+                <p class="modal-desc">Usage statistics and performance metrics.</p>
+                <div class="input-group">
+                    <label>Total Tokens</label>
+                    <input type="text" placeholder="0" disabled>
+                </div>
+            </div>
+
+            <!-- System Tab -->
+            <div id="tab-system" class="tab-panel">
+                <h3>System</h3>
+                <p class="modal-desc">System configuration and API keys.</p>
+
+                <div class="input-group">
+                    <label>Notion Integration Token</label>
+                    <input type="password" id="key-notion" placeholder="secret_...">
+                </div>
+
+                <div class="input-group">
+                    <label>Trello API Key</label>
+                    <input type="password" id="key-trello" placeholder="Valid API Key">
+                </div>
+
+                <div class="input-group">
+                    <label>GitHub Personal Access Token</label>
+                    <input type="password" id="key-github" placeholder="ghp_...">
+                </div>
+            </div>
+
+            <div class="modal-actions">
+                <button id="close-settings" class="btn secondary">Close</button>
+                <button id="save-settings" class="btn primary">Save All</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="settings.js"></script>
+</body>
+
+</html>

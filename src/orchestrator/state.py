@@ -14,6 +14,10 @@ class AgentState(TypedDict):
     # This is overwritten by the system, not appended.
     context: Dict[str, str]
     
-    # Routing key to determine which agent runs next.
+    # Classification key to determine which agent runs next.
     # set by the Router node.
-    next_agent: str
+    classification: str
+
+    # Episodic Memory (Retrieved Facts)
+    # List of relevant facts from Mem0
+    memories: List[str]

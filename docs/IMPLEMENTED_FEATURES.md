@@ -56,7 +56,11 @@
 ## 5. Persistence (The "Memory")
 **Status: ✅ Functional**
 
-*   **SQLite Database (`src/database/db.py`)**:
+*   **Episodic Memory (`src/brain/memory.py`)**:
+    *   **Engine**: `Mem0` + `Qdrant` (Vector Store).
+    *   **Functionality**: Stores and retrieves semantic user interactions.
+    *   **Legacy**: SQLite Database (`src/database/db.py`) for activity metrics.
+*   **Activity Database (`src/database/db.py`)**:
     *   Local `activity.db` created in `src/database/`.
     *   **Session Tracking**: Logs App Boot time (queried from `sysctl` for accuracy).
     *   **Activity Logging**: Records `app_name`, `window_title`, `duration`, and `is_idle` for every app switch.

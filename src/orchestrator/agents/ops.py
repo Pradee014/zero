@@ -36,9 +36,39 @@ def ops_agent_node(state: AgentState):
     # Resolve default model based on fallback chain for Ops
     fallback_model = os.getenv("ZERO_MODEL", "gpt-3.5-turbo")
     
+    from brain.memory import get_memory_client
+    from langchain_core.messages import HumanMessage
+
+    # 1. Retrieve Context from Memory
+    try:
+        mem_client = get_memory_client()
+        last_human_msg = next((m.content for m in reversed(messages) if isinstance(m, HumanMessage)), "")
+        
+        if last_human_msg:
+            relevant_memories = mem_client.search(last_human_msg, limit=3)
+            if relevant_memories:
+                memory_block = "\n".join([f"- {m}" for m in relevant_memories])
+                if "Ops-0" in messages[0].content:
+                     # Modifying the System Message (messages[0])
+                     # We reconstruct it to append memory
+                     original_prompt = messages[0].content
+                     if "[RECALLED MEMORIES]" not in original_prompt:
+                        new_prompt = original_prompt + f"\n\n[RECALLED MEMORIES]\n{memory_block}\n"
+                        messages[0] = SystemMessage(content=new_prompt)
+
+    except Exception as e:
+        print(f"Zero: Ops Memory Retrieval Failed: {e}")
+
     model = get_llm(default_model_name=fallback_model, model_env_var="ZERO_OPS_MODEL")
     
     model_with_tools = model.bind_tools(OPS_TOOLS)
     response = model_with_tools.invoke(messages)
     
+    # 2. Store Interaction
+    try:
+        if last_human_msg:
+            mem_client.add(last_human_msg, metadata={"agent": "ops-0"})
+    except Exception as e:
+        print(f"Zero: Ops Memory Storage Failed: {e}")
+
     return {"messages": [response]}

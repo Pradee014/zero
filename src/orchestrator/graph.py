@@ -41,11 +41,47 @@ def dev_agent_node(state: AgentState):
     # Model
     # Use centralized LLM utility (supports Groq & Ollama)
     from orchestrator.llm_utils import get_llm
+    from brain.memory import get_memory_client
+    
+    # 1. Retrieve Context from Memory
+    try:
+        mem_client = get_memory_client()
+        # Use the last human message for query
+        last_human_msg = next((m.content for m in reversed(messages) if isinstance(m, HumanMessage)), "")
+        
+        if last_human_msg:
+            relevant_memories = mem_client.search(last_human_msg, limit=3)
+            if relevant_memories:
+                memory_block = "\n".join([f"- {m}" for m in relevant_memories])
+                system_prompt += f"\n\n[RECALLED MEMORIES]\n{memory_block}\n"
+    except Exception as e:
+        print(f"Zero: Memory Retrieval Failed: {e}")
+
+    # Update System Message with Memories
+    if not isinstance(messages[0], SystemMessage) or "Dev-0" not in messages[0].content:
+         messages = [SystemMessage(content=system_prompt)] + messages
+    else:
+        # If system message exists, append memory to it (hacky but works for now)
+        # Better: Replace the system message. 
+        # For this iteration, we just ensure the prompt includes it if we rebuilt it.
+        # If we didn't rebuild, we might miss it. Let's force update 0.
+        messages[0] = SystemMessage(content=system_prompt)
+
     model = get_llm(default_model_name="llama3.2", model_env_var="ZERO_MODEL")
     # Bind DEV tools specifically
     model_with_tools = model.bind_tools(DEV_TOOLS)
     
     response = model_with_tools.invoke(messages)
+    
+    # 2. Store Interaction in Memory (Async/Background ideally)
+    # For now, synchronous to ensure it works.
+    try:
+        if last_human_msg:
+            # We store the user's intent + the agent's response summary?
+            # Mem0 fits best with "User Said X". 
+            mem_client.add(last_human_msg, metadata={"app": app_name, "title": title})
+    except Exception as e:
+        print(f"Zero: Memory Storage Failed: {e}")
     
     return {"messages": [response]}
 

@@ -11,104 +11,95 @@
 
 <body>
     <div id="app">
-        <div id="header">
-            <div id="context-app-name">Desktop</div>
-            <div id="header-right">
-                <div id="controls">
-                    <div id="settings-btn" class="icon-btn" title="Settings">⚙️</div>
+        <!-- Sidebar -->
+        <div id="sidebar">
+            <div class="sidebar-top">
+                <div class="brand-vertical" title="Zero">
+                    <span class="logo-icon">✴️</span>
+                    <!-- Text hidden/removed as per request for icon-only look usually, but user said 'text under logo/icon' -->
                 </div>
+
+                <div class="nav-item-vertical" id="new-chat-btn">
+                    <div class="icon-circle">
+                        <svg class="sidebar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                    </div>
+                    <span class="nav-label">New</span>
+                </div>
+
+                <div class="nav-item-vertical" id="nav-history">
+                    <div class="icon">
+                        <svg class="sidebar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <polyline points="12 6 12 12 16 14"></polyline>
+                        </svg>
+                    </div>
+                    <span class="nav-label">History</span>
+                </div>
+
+
+            </div>
+
+            <div class="sidebar-spacer"></div>
+
+            <div class="sidebar-bottom">
+                <div class="nav-item-vertical" id="nav-settings">
+                    <div class="icon">
+                        <svg class="sidebar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="3"></circle>
+                            <path
+                                d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z">
+                            </path>
+                        </svg>
+                    </div>
+                    <span class="nav-label">Settings</span>
+                </div>
+
+
+            </div>
+
+            <!-- Hidden History Overlay/Panel (Simulating the 'detailed window expands' behavior if needed later, but focusing on sidebar first) -->
+            <div class="sidebar-history-panel" id="history-panel">
+                <!-- Injected via JS (hidden for now) -->
             </div>
         </div>
 
-        <!-- Settings Modal -->
-        <div id="settings-modal" class="modal hidden">
-            <div class="modal-content settings-modal-content">
-                <div class="settings-sidebar">
-                    <div class="settings-header">Settings</div>
-                    <ul class="settings-tabs">
-                        <li class="tab-item active" data-tab="models">Models</li>
-                        <li class="tab-item" data-tab="agents">Agents</li>
-                        <li class="tab-item" data-tab="voice">Voice</li>
-                        <li class="tab-item" data-tab="stats">Stats</li>
-                        <li class="tab-item" data-tab="system">System</li>
-                    </ul>
-                </div>
-                <div class="settings-main">
-                    <!-- Models Tab -->
-                    <div id="tab-models" class="tab-panel active">
-                        <h3>Models</h3>
-                        <p class="modal-desc">Configure your LLM providers and models.</p>
-                        <!-- Placeholders for future implementation -->
-                        <div class="input-group">
-                            <label>Default Model</label>
-                            <input type="text" placeholder="e.g. gpt-4o" disabled>
-                        </div>
-                    </div>
-
-                    <!-- Agents Tab -->
-                    <div id="tab-agents" class="tab-panel">
-                        <h3>Agents</h3>
-                        <p class="modal-desc">Manage active agents and capabilities.</p>
-                        <div class="input-group">
-                            <label>Active Agents</label>
-                            <input type="text" placeholder="0 Active" disabled>
-                        </div>
-                    </div>
-
-                    <!-- Voice Tab -->
-                    <div id="tab-voice" class="tab-panel">
-                        <h3>Voice</h3>
-                        <p class="modal-desc">Voice input/output settings.</p>
-                        <div class="input-group">
-                            <label>Input Device</label>
-                            <input type="text" placeholder="Default Microphone" disabled>
-                        </div>
-                    </div>
-
-                    <!-- Stats Tab -->
-                    <div id="tab-stats" class="tab-panel">
-                        <h3>Stats</h3>
-                        <p class="modal-desc">Usage statistics and performance metrics.</p>
-                        <div class="input-group">
-                            <label>Total Tokens</label>
-                            <input type="text" placeholder="0" disabled>
-                        </div>
-                    </div>
-
-                    <!-- System Tab -->
-                    <div id="tab-system" class="tab-panel">
-                        <h3>System</h3>
-                        <p class="modal-desc">System configuration and API keys.</p>
-
-                        <div class="input-group">
-                            <label>Notion Integration Token</label>
-                            <input type="password" id="key-notion" placeholder="secret_...">
-                        </div>
-
-                        <div class="input-group">
-                            <label>Trello API Key</label>
-                            <input type="password" id="key-trello" placeholder="Valid API Key">
-                        </div>
-
-                        <div class="input-group">
-                            <label>GitHub Personal Access Token</label>
-                            <input type="password" id="key-github" placeholder="ghp_...">
-                        </div>
-                    </div>
-
-                    <div class="modal-actions">
-                        <button id="cancel-settings" class="btn secondary">Close</button>
-                        <button id="save-settings" class="btn primary">Save All</button>
-                    </div>
-                </div>
+        <!-- History Menu Flyout (Hover) -->
+        <div id="history-menu" class="history-menu hidden">
+            <div class="menu-header">Recent Chats</div>
+            <div id="history-menu-list" class="history-list-content">
+                <!-- Injected via JS -->
             </div>
         </div>
 
-        <div id="chat-container"></div>
-        <div id="input-area">
-            <span class="prompt-char">&gt;</span>
-            <input type="text" id="user-input" placeholder="Just ask... (e.g. 'Draft email to Bob')" autocomplete="off"
-                autocorrect="off" autocapitalize="off" spellcheck="false" autofocus>
+        <!-- Main Content Area -->
+        <div id="main-content">
+            <div id="header">
+                <div id="header-right">
+                    <div id="context-app-name">Desktop</div>
+                    <div id="controls">
+                        <!-- Settings button moved to sidebar via nav-settings, but keeping here for fallback/transition if needed, or we can remove it. Let's keep it hidden or repurpose it. -->
+                        <!-- <div id="settings-btn" class="icon-btn" title="Settings">⚙️</div> -->
+                        <div id="connection-status" class="status-indicator online" title="Connected"></div>
+                    </div>
+                </div>
+            </div>
+
+
+
+
+
+            <div id="chat-container"></div>
+            <div id="input-area">
+                <span class="prompt-char">&gt;</span>
+                <input type="text" id="user-input" placeholder="Just ask... (e.g. 'Draft email to Bob')"
+                    autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" autofocus>
+            </div>
         </div>
     </div>
     <script src="script.js"></script>

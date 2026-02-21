@@ -35,7 +35,10 @@ class ZeroAppDelegate(NSObject):
         
         # 0.2 Initialize Graph Brain
         from orchestrator.graph import build_zero_graph
+        # 0.2 Initialize Graph Brain
+        from orchestrator.graph import build_zero_graph
         self.graph = build_zero_graph()
+        self.current_conversation_id = None # Track active session
         
         # 1. Setup Status Bar
         self.status_item = NSStatusBar.systemStatusBar().statusItemWithLength_(NSVariableStatusItemLength)
@@ -124,56 +127,116 @@ class ZeroAppDelegate(NSObject):
         import json
         from langchain_core.messages import HumanMessage
         from security import KeyringManager
+        from brain.memory import get_memory_client
         
         # 1. Parsing Command
         try:
             data = json.loads(text)
-            if isinstance(data, dict) and data.get("type") == "save_keys":
-                keys = data.get("data", {})
-                for k, v in keys.items():
-                    # k is 'notion', 'trello', 'github'
-                    # Store as 'ZERO_NOTION_KEY' etc to avoid collisions
-                    secret_name = f"ZERO_{k.upper()}_KEY"
-                    KeyringManager.set_secret(secret_name, v)
+            if isinstance(data, dict):
+                msg_type = data.get("type")
                 
-                NSLog("Zero: Keys saved securely.")
-                # Optional: Send confirmation back? JS already handles optimistic UI.
-                return
+                if msg_type == "save_keys":
+                    keys = data.get("data", {})
+                    for k, v in keys.items():
+                        secret_name = f"ZERO_{k.upper()}_KEY"
+                        KeyringManager.set_secret(secret_name, v)
+                    NSLog("Zero: Keys saved securely.")
+                    return
+                
+                elif msg_type == "get_cortex_data":
+                    self.fetch_cortex_data()
+                    return
+
+                elif msg_type == "get_history":
+                    self.fetch_history()
+                    return
+
+                elif msg_type == "new_chat":
+                    self.current_conversation_id = None
+                    # Notify UI to clear (optional, UI usually does it immediately)
+                    return
+
+                elif msg_type == "load_conversation":
+                    cid = data.get("data", {}).get("id")
+                    if cid:
+                        self.load_conversation(cid)
+                    return
+                
+                elif msg_type == "rename_chat":
+                    cid = data.get("data", {}).get("id")
+                    title = data.get("data", {}).get("title")
+                    if cid and title:
+                        db.update_conversation_title(cid, title)
+                        self.fetch_history() # Refresh UI
+                    return
+
+                elif msg_type == "delete_chat":
+                    cid = data.get("data", {}).get("id")
+                    if cid:
+                        db.delete_conversation(cid)
+                        # If current chat is deleted, clear it?
+                        if self.current_conversation_id == cid:
+                            self.current_conversation_id = None
+                            # TODO: Send 'new_chat' signal to UI or handled by fetch_history?
+                        self.fetch_history()
+                    return
+                    
         except json.JSONDecodeError:
             # Not JSON, treat as chat
             pass
 
+        # 2. Handle Chat Message
         def run_graph():
-            # 1. Fetch Context
+            # A. Ensure Conversation ID
+            if not self.current_conversation_id:
+                # Create new conversation
+                # Use first 30 chars as title for now
+                title = text[:30] + "..." if len(text) > 30 else text
+                self.current_conversation_id = db.create_conversation(title)
+                # Refresh history list in UI so new chat appears
+                self.fetch_history()
+
+            # B. Log User Message
+            db.add_message(self.current_conversation_id, "user", text)
+
+            # C. Fetch Context
             context = {
                 'app': self.monitor.current_app,
                 'title': self.monitor.current_title
             }
             
-            # 2. Prepare Input
+            # D. Prepare Input
             inputs = {
                 "messages": [HumanMessage(content=text)],
                 "context": context
             }
             
+            full_response = ""
+
             try:
-                # 3. Stream Output
-                # The graph returns events. We need to find the AIMessage chunks.
-                # For our simple router_node, it returns a dict with 'messages'.
-                # But since we are streaming, we might get updates.
-                # Let's see how our graph is built.
-                # Currently simple router returns a full AIMessage.
-                
-                # If we use .stream(), it yields state updates.
+                # E. Stream Output
                 for event in self.graph.stream(inputs):
                     # event is typically {'node_name': state_update}
                     for node, values in event.items():
                         if values and "messages" in values:
                             # Get the last message which is the response
                             last_msg = values["messages"][-1]
+                            chunk = last_msg.content
+                            full_response = chunk 
                             # Stream the content
-                            self.webview.stream_response(last_msg.content)
+                            self.webview.stream_response(chunk)
                             
+                # F. Log System Response & Memory
+                if full_response:
+                    db.add_message(self.current_conversation_id, "system", full_response)
+                    
+                    # Store in Episodic Memory (Mem0)
+                    try:
+                        mem = get_memory_client()
+                        mem.add(f"User: {text}\nSystem: {full_response}", user_id="zero-user")
+                    except Exception as e:
+                        NSLog(f"Zero: Mem0 Add Error: {e}")
+
             except Exception as e:
                 import traceback
                 traceback.print_exc()
@@ -235,6 +298,99 @@ class ZeroAppDelegate(NSObject):
         except Exception as e:
             NSLog(f"Zero: Error logging boot time: {e}")
 
+    def fetch_cortex_data(self):
+        """
+        Aggregates data for the Cortex Panel (Memories + Tasks).
+        """
+        import threading
+        import json
+        from brain.memory import get_memory_client
+        
+        def run_fetch():
+            data = {
+                "memories": [],
+                "tasks": []
+            }
+            
+            # 1. Fetch Memories
+            try:
+                mem_client = get_memory_client()
+                # memory.get_all() returns list of strings based on my wrapper in memory.py
+                raw_mems = mem_client.get_all() 
+                # Wrapper returns list[str], so we package it for UI
+                data["memories"] = [{"text": m} for m in raw_mems]
+            except Exception as e:
+                NSLog(f"Zero: Cortex Memory Fetch Error: {e}")
+            
+            # 2. Fetch Tasks (Mocked for Demo Reliability)
+            # In production, we would call github_ops.get_issues(), trello_ops.get_cards()
+            # based on stored keys.
+            try:
+                # User requested to remove hardcode and wait for real integration.
+                data["tasks"] = []
+            except Exception as e:
+                NSLog(f"Zero: Cortex Task Fetch Error: {e}")
+            
+            # 3. Send to UI
+            # Ensure JSON serialization is safe
+            try:
+                safe_json = json.dumps(data)
+                js = f"updateCortex({safe_json})"
+                
+                from PyObjCTools import AppHelper
+                # Call on main thread
+                def update_ui():
+                    if self.webview:
+                        self.webview.evaluateJavaScript_completionHandler_(js, None)
+                
+                AppHelper.callAfter(update_ui)
+            except Exception as e:
+                NSLog(f"Zero: Cortex UI Update Error: {e}")
+            
+        thread = threading.Thread(target=run_fetch)
+        thread.start()
+
+    def fetch_history(self):
+        """Fetches recent conversations and sends to UI."""
+        import json
+        from PyObjCTools import AppHelper
+        
+        try:
+            conversations = db.get_recent_conversations()
+            # Convert to list of dicts
+            data = [dict(c) for c in conversations]
+            safe_json = json.dumps(data)
+            js = f"updateHistoryList({safe_json})"
+            
+            def update_ui():
+                if self.webview:
+                    self.webview.evaluateJavaScript_completionHandler_(js, None)
+            
+            AppHelper.callAfter(update_ui)
+        except Exception as e:
+            NSLog(f"Zero: History Fetch Error: {e}")
+
+    def load_conversation(self, conversation_id):
+        """Loads messages for a specific conversation."""
+        import json
+        from PyObjCTools import AppHelper
+        
+        self.current_conversation_id = conversation_id
+        
+        try:
+            messages = db.get_conversation_messages(conversation_id)
+            # Convert to list of dicts
+            data = [dict(m) for m in messages]
+            safe_json = json.dumps(data)
+            js = f"loadChatMessages({safe_json})"
+            
+            def update_ui():
+                if self.webview:
+                    self.webview.evaluateJavaScript_completionHandler_(js, None)
+            
+            AppHelper.callAfter(update_ui)
+        except Exception as e:
+            NSLog(f"Zero: Conversation Load Error: {e}")
 
 if __name__ == "__main__":
     app = NSApplication.sharedApplication()

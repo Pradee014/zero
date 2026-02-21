@@ -19,6 +19,8 @@ dependencies = [
     "notion-client>=2.2.1",
     "PyGithub>=2.1.1",
     "langchain-openai>=1.1.7",
+    "mem0ai>=0.0.20",
+    "qdrant-client>=1.7.0",
 ]
 
 [dependency-groups]

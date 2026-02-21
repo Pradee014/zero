@@ -4,11 +4,13 @@ from typing import Optional, Literal
 from pydantic import BaseModel, Field
 
 class EmailInput(BaseModel):
-    action: Literal["read_inbox", "draft_email"] = Field(..., description="Action: 'read_inbox' or 'draft_email'")
+    action: Literal["read_inbox", "draft_email", "send_email"] = Field(..., description="Action: 'read_inbox', 'draft_email', or 'send_email'")
     limit: Optional[int] = Field(5, description="Number of emails to read (default 5)")
     recipient: Optional[str] = Field(None, description="Recipient email address")
     subject: Optional[str] = Field(None, description="Email subject")
     body: Optional[str] = Field(None, description="Email body content")
+    sender: Optional[str] = Field(None, description="Optional. The exact email address to send from. If not provided, it falls back to the .env file account.")
+    user_confirmation: Optional[bool] = Field(False, description="CRITICAL: Set this to True if the user has EXPLICITLY confirmed they want to send the email.")
 
 def run_applescript(script: str) -> str:
     try:
@@ -23,11 +25,17 @@ def run_applescript(script: str) -> str:
         return f"AppleScript Error: {e.stderr}"
 
 @tool("email_tool", args_schema=EmailInput)
-def email_ops(action: str, limit: int = 5, recipient: str = None, subject: str = None, body: str = None) -> str:
+def email_ops(action: str, limit: int = 5, recipient: str = None, subject: str = None, body: str = None, sender: str = None, user_confirmation: bool = False) -> str:
     """
     Interact with the local macOS Mail app. 
-    Can read the inbox or draft new emails (opens the window).
+    Can read the inbox, draft new emails (opens the window), or send emails directly (in the background).
     """
+    # 0. Global Security Airlock Check
+    from security import SecurityAirlock
+    SecurityAirlock.validate_tool_request("email_tool", {
+        "action": action, 
+        "user_confirmation": user_confirmation
+    })
     if action == "read_inbox":
         script = f'''
         tell application "Mail"
@@ -76,5 +84,44 @@ def email_ops(action: str, limit: int = 5, recipient: str = None, subject: str =
         return "Draft email opened."
         '''
         return run_applescript(script)
+
+    elif action == "send_email":
+        if not recipient:
+            return "Error: recipient required"
+            
+        subj = subject or "No Subject"
+        content = body or ""
+        
+        # 1. Determine Sender
+        import os
+        from dotenv import load_dotenv
+        load_dotenv()
+        env_sender = os.getenv("ZERO_EMAIL_SENDER")
+        final_sender = sender or env_sender
+        
+        # 2. Build AppleScript
+        script = f'''
+        tell application "Mail"
+            -- Create invisibly
+            set newMessage to make new outgoing message with properties {{subject:"{subj}", content:"{content}", visible:false}}
+            tell newMessage
+                make new to recipient at end of to recipients with properties {{address:"{recipient}"}}
+        '''
+        
+        # 3. Add explicit sender if configured
+        if final_sender:
+            script += f'''
+                set sender to "{final_sender}"
+            '''
+            
+        script += '''
+                send
+            end tell
+        end tell
+        return "Email queued for sending in the background."
+        '''
+        result = run_applescript(script)
+        return f"Result: {result}"
+
         
     return "Invalid action"

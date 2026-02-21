@@ -55,8 +55,7 @@ document.addEventListener('mousedown', (e) => {
     while (el && el !== document.body) {
         if (interactiveTags.includes(el.tagName) ||
             el.classList.contains('message-content') || // Allow text selection
-            el.classList.contains('icon-btn') ||
-            el.classList.contains('settings-modal')) {
+            el.classList.contains('icon-btn')) {
             isInteractive = true;
             break;
         }
@@ -169,82 +168,204 @@ function addMessage(role, text) {
 
 /* --- Settings UI --- */
 const settingsBtn = document.getElementById('settings-btn');
-const settingsModal = document.getElementById('settings-modal');
-const cancelSettings = document.getElementById('cancel-settings');
-const saveSettings = document.getElementById('save-settings');
+// const settingsModal ... removed
+// const cancelSettings ... removed
+// const saveSettings ... removed
 
-// Tab Switching
-const tabs = document.querySelectorAll('.tab-item');
-const panels = document.querySelectorAll('.tab-panel');
+function openSettingsWindow() {
+    window.open('settings.html', 'ZeroSettings', 'width=800,height=600');
+}
 
-tabs.forEach(tab => {
-    tab.addEventListener('click', () => {
-        // Deactivate all
-        tabs.forEach(t => t.classList.remove('active'));
-        panels.forEach(p => p.classList.remove('active'));
+if (settingsBtn) {
+    settingsBtn.addEventListener('click', openSettingsWindow);
+}
 
-        // Activate clicked
-        tab.classList.add('active');
-        const targetId = `tab-${tab.getAttribute('data-tab')}`;
-        const targetPanel = document.getElementById(targetId);
-        if (targetPanel) targetPanel.classList.add('active');
+
+/* --- Vertical Sidebar Logic --- */
+const newChatBtn = document.getElementById('new-chat-btn');
+const navHistory = document.getElementById('nav-history');
+// const navTools ... removed
+const navSettings = document.getElementById('nav-settings');
+
+if (newChatBtn) {
+    newChatBtn.addEventListener('click', () => {
+        chatContainer.innerHTML = '';
+        sendMessage('new_chat');
+        addMessage('system', 'Started a new thread.');
     });
-});
-
-// Modal Actions
-function openSettings() {
-    settingsModal.classList.remove('hidden');
 }
 
-function closeSettings() {
-    settingsModal.classList.add('hidden');
+if (navSettings) {
+    navSettings.addEventListener('click', openSettingsWindow);
 }
 
-settingsBtn.addEventListener('click', openSettings);
-cancelSettings.addEventListener('click', closeSettings);
+const historyMenu = document.getElementById('history-menu');
+let historyHideTimer = null;
 
-// Global Shortcuts
-document.addEventListener('keydown', (e) => {
-    // Cmd + , to toggle settings
-    if ((e.metaKey || e.ctrlKey) && e.key === ',') {
-        e.preventDefault();
-        if (settingsModal.classList.contains('hidden')) {
-            openSettings();
-        } else {
-            closeSettings();
+function showHistory() {
+    if (historyMenu) {
+        if (historyHideTimer) clearTimeout(historyHideTimer);
+        historyMenu.classList.remove('hidden');
+        sendMessage('get_history'); // Refresh list
+    }
+}
+
+function hideHistory() {
+    if (historyMenu) {
+        historyHideTimer = setTimeout(() => {
+            historyMenu.classList.add('hidden');
+        }, 300); // Short delay to allow moving mouse to menu
+    }
+}
+
+if (navHistory) {
+    // Hover logic
+    navHistory.addEventListener('mouseenter', showHistory);
+    navHistory.addEventListener('mouseleave', hideHistory);
+}
+
+if (historyMenu) {
+    // Keep open when hovering the menu itself
+    historyMenu.addEventListener('mouseenter', () => {
+        if (historyHideTimer) clearTimeout(historyHideTimer);
+    });
+    historyMenu.addEventListener('mouseleave', () => {
+        historyMenu.classList.add('hidden');
+    });
+}
+
+
+
+
+// --- History & Chat Loading ---
+
+const historyList = document.getElementById('history-panel'); // Old placeholder
+const historyMenuList = document.getElementById('history-menu-list'); // New Flyout List
+
+window.updateHistoryList = function (conversations) {
+    // Target the flyout list prefers
+    const targetList = historyMenuList || historyList;
+    if (!targetList) return;
+
+    targetList.innerHTML = '';
+
+    // Create Header if needed, or just list
+    // const header = document.createElement('div');
+    // header.className = 'history-group-header';
+    // header.textContent = "Recent";
+    // historyList.appendChild(header);
+
+    conversations.forEach(conv => {
+        const item = document.createElement('div');
+        item.className = 'history-item';
+        // Container for title and actions
+        const titleSpan = document.createElement('span');
+        titleSpan.className = 'history-title';
+        titleSpan.textContent = conv.title || "New Chat";
+
+        // Actions Container (Hidden by default, shown on hover)
+        const actionsContainer = document.createElement('div');
+        actionsContainer.className = 'history-inline-actions';
+
+        // Edit Button
+        const editBtn = document.createElement('span');
+        editBtn.className = 'action-icon edit-icon';
+        editBtn.innerHTML = '&#9998;'; // Pencil
+        editBtn.title = 'Rename';
+        editBtn.onclick = (e) => {
+            e.stopPropagation();
+            actionsContainer.classList.add('hidden-during-rename');
+            startRename(conv.id, titleSpan, actionsContainer);
+        };
+
+        // Delete Button
+        // Delete Button
+        const deleteBtn = document.createElement('span');
+        deleteBtn.className = 'action-icon delete-icon';
+        const trashSvg = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>`;
+        deleteBtn.innerHTML = trashSvg;
+        deleteBtn.title = 'Delete';
+
+        deleteBtn.onclick = (e) => {
+            e.stopPropagation();
+            if (deleteBtn.classList.contains('confirming')) {
+                sendMessage('delete_chat', { id: conv.id });
+                item.remove();
+            } else {
+                deleteBtn.classList.add('confirming');
+                deleteBtn.textContent = '?';
+                deleteBtn.style.color = '#ef4444';
+                setTimeout(() => {
+                    deleteBtn.classList.remove('confirming');
+                    deleteBtn.innerHTML = trashSvg;
+                    deleteBtn.style.removeProperty('color');
+                }, 3000);
+            }
+        };
+
+        actionsContainer.appendChild(editBtn);
+        actionsContainer.appendChild(deleteBtn);
+
+        item.appendChild(titleSpan);
+        item.appendChild(actionsContainer);
+
+        item.addEventListener('click', () => {
+            sendMessage('load_conversation', { id: conv.id });
+            if (historyMenu) historyMenu.classList.add('hidden');
+        });
+        targetList.appendChild(item);
+    });
+}
+
+function startRename(id, titleSpan, actionsContainer) {
+    if (actionsContainer) actionsContainer.style.display = 'none'; // Force hide
+    const currentTitle = titleSpan.textContent;
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.value = currentTitle;
+    input.className = 'rename-input';
+
+    // Replace span with input
+    titleSpan.replaceWith(input);
+    input.focus();
+
+    const save = () => {
+        const newTitle = input.value.trim() || currentTitle;
+        titleSpan.textContent = newTitle;
+        input.replaceWith(titleSpan);
+        if (actionsContainer) actionsContainer.style.display = ''; // Restore
+        if (actionsContainer) actionsContainer.classList.remove('hidden-during-rename');
+
+        if (newTitle !== currentTitle) {
+            sendMessage('rename_chat', { id: id, title: newTitle });
         }
-    }
-    // Escape to close
-    if (e.key === 'Escape' && !settingsModal.classList.contains('hidden')) {
-        closeSettings();
-    }
-});
-
-// Close on backdrop click
-settingsModal.addEventListener('click', (e) => {
-    if (e.target === settingsModal) {
-        closeSettings();
-    }
-});
-
-// Save Functionality
-saveSettings.addEventListener('click', () => {
-    const keys = {
-        notion: document.getElementById('key-notion').value,
-        trello: document.getElementById('key-trello').value,
-        github: document.getElementById('key-github').value,
     };
 
-    sendMessage('save_keys', keys);
+    input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') save();
+        if (e.key === 'Escape') {
+            titleSpan.textContent = currentTitle;
+            input.replaceWith(titleSpan);
+            if (actionsContainer) actionsContainer.style.display = '';
+        }
+    });
 
-    // UI Feedback
-    closeSettings();
+    input.addEventListener('blur', save);
 
-    // Clear inputs for security (good practice, though UX trade-off)
-    document.getElementById('key-notion').value = "";
-    document.getElementById('key-trello').value = "";
-    document.getElementById('key-github').value = "";
+    // Stop propagation on input click to prevent chat load
+    input.onclick = (e) => e.stopPropagation();
+}
 
-    // Show system message
-    addMessage('system', "_Keys saved securely to Keychain._");
-});
+window.loadChatMessages = function (messages) {
+    chatContainer.innerHTML = '';
+    messages.forEach(msg => {
+        addMessage(msg.role, msg.content);
+    });
+    chatContainer.scrollTop = chatContainer.scrollHeight;
+}
+
+// Initialize
+// Give backend a moment to be ready if needed, or just call
+setTimeout(() => sendMessage('get_history'), 500);
+
+
